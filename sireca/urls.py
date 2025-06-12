@@ -18,7 +18,7 @@ from django.urls import re_path as url # from django.conf.urls import url # se u
 from django.contrib import admin
 import django.views.static
 
-from appsireca import views
+from appsireca import views, perfil
 from sireca import settings
 
 urlpatterns = []
@@ -35,5 +35,6 @@ urlpatterns += {
     url(r'^$', views.panel),
     url(r'^login', views.login_user),
     url(r'^logout$', views.logout_user),
+    url(r'^perfil', perfil.view),
 
 }

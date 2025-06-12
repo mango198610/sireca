@@ -111,6 +111,7 @@ class Pais(models.Model):
 
 class Nacionalidad(models.Model):
     nombre = models.CharField(max_length=100)
+    estado = models.BooleanField(default=True)
 
     def __unicode__(self):
         return self.nombre
@@ -159,12 +160,8 @@ class Persona(models.Model):
     email = models.CharField(max_length=200,blank=True, null=True, verbose_name="Correos Electronicos")
     email1 = models.CharField(max_length=200,blank=True, null=True, verbose_name="Correos Electronicos")
     email2 = models.CharField(max_length=200,blank=True, null=True, verbose_name="Correos Electronicos")
-    emailinst = models.CharField(max_length=200,blank=True, null=True, verbose_name="Correo Institucional")
     usuario = models.ForeignKey(User,null=True,on_delete=models.CASCADE)
-    reestablecer = models.BooleanField(default=False)
-    codigo = models.CharField(max_length=50, blank=True, null=True)
-    fecha_res = models.DateTimeField(blank=True, null=True)
-    fechaingreso = models.DateField(blank=True, null=True, verbose_name='Fecha Ingreso')
+    fecha_registro = models.DateTimeField(blank=True, null=True)
 
 
     def nombre_completo_inverso(self):

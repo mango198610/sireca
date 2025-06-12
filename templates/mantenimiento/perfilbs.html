@@ -1,0 +1,469 @@
+{% extends "basebs.html" %}
+
+{% block heading %}
+
+    <script>
+          $(function () {
+              $(document).ready(function () {
+
+                  var idperf=0;
+
+                  function buscar(){
+                       location.href = "/perfil?acc={{ permisopcion.id }}";
+                  }
+
+                  
+
+                  var tablaperfil=new DataTable('#tablaperfil', {
+                   language: {
+                        "lengthMenu": "Mostrar _MENU_ registros",
+                        "zeroRecords": "No existe información",
+                        "info": "Mostrando _PAGE_ de _PAGES_",
+                        "infoEmpty": "Sin datos",
+                        "infoFiltered": "(Filtrando de un total de _MAX_ registros)",
+                        "search": "Buscar",
+                        "paginate": {
+                            "previous": "Anterior",
+                            "next": "Siguiente"
+                        }
+                   },
+                   ajax: {
+                        url: '/perfil',
+                        type: 'POST',
+                        data: function (d) {
+                            d.action = 'serverSide';
+                        }
+                    },
+                    columns: [
+                         { data: 'nombre',"orderable": true },                         
+                         { data: 'estado',"orderable": true },
+                         { data: 'acciones',type: 'html' }
+                    ],
+                    processing: true,
+                    serverSide: true,
+                    fixedHeader: true,
+                    searching: true,
+		            search: true,
+		            info: false,
+                    initComplete: function () {
+                        var table = this.api();
+                        $('#' + 'tablaperfil' + '_filter').parent().addClass('d-none');
+                        $('.filtro-columna', table.table().header()).each(function () {
+                            var columnIndex = $(this).index();
+                            if(! $(this).hasClass('sin-filtrado')){
+                                var html = $('<input type="text" class="form-control form-control-sm form-control-filter" placeholder="Filtrar..."/>')
+                                .on('keyup change', function () {
+                                    table.column(columnIndex).search($(this).val()).draw();
+                                });
+
+                                $(this).html(html);
+                            }
+
+                        });
+
+                       table.columns.adjust();
+                    }
+                });
+                  
+
+                  $("#btnagregar").click(function() {
+                       $("#tituloventana").html("Ingresar Perfil");
+                       $("#ventanaperfil").modal({backdrop: 'static', keyboard: false});
+                       $("#ventanaperfil").modal("show");
+                  });
+
+                  $('#frmingresoperfil').on('submit', function(e) {
+                      e.preventDefault();
+                      Loader.open();
+                      var formData = new FormData();
+                      formData.append('action', 'agregar');
+                      formData.append('nombre', $("#txtnombre").val());
+                      formData.append('estado',  $("#cmbestado").val());
+                      formData.append('id',  idperf);
+                      $.ajax({
+                         url: '/perfil',
+                         type: "POST",
+                         contentType: false,
+                         data: formData,
+                         processData: false,
+                         cache: false,
+                         success: function (data) {
+                             if (data.result == "ok") {
+
+                                 swal("! Perfil", "Se ingreso correctamente", "success").then((result) => {
+                                         buscar();
+                                  });
+
+                             } else {
+                                 swal("Error", data.message, "error");
+                             }
+                         },
+                         error: function (xhr, ajaxOptions, thrownError) {
+                             swal("Error", "Error Conexion en el Servidor", "error");
+                         },
+                         complete: function(){
+                             Loader.close();
+                         }
+
+                      });
+
+                  });
+
+                  $("#btncancelar").click(function() {
+                     document.getElementById("frmingresoperfil").reset();
+                     $("#ventanaperfil").modal('hide');
+                  });
+
+
+                  editar=function (idperfil){
+                         
+                         $("#tituloventana").html("Actualizar Perfil");
+                         
+                         idperf=idperfil;
+                         $.post("/perfil", {
+                             "action": "buscardata",
+                              "id":idperfil
+                         }, function (data) {
+
+                             if (data.result == 'ok') {
+                                
+
+                                 $("#txtnombre").val(data.perfil[0].nombre);
+                                 $("#cmbestado").val(parseInt(data.perfil[0].estado));
+
+
+                             }else{
+                                  swal("Error", data.message, "error");
+                             }
+
+                         }, 'json').always(function() {
+
+                               $("#ventanaperfil").modal({backdrop: 'static', keyboard: false});
+                               $("#ventanaperfil").modal("show");
+
+                         });
+                  }
+
+                  eliminarperfil = function (id,nombre) {
+
+                      swal({
+                        title: '¿Está seguro que desea eliminar el perfil?',
+                        text: "Perfil : "+nombre,
+                        type: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Si,Eliminar!',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonClass: 'btn btn-success me-2',
+                        cancelButtonClass: 'btn btn-danger ',
+                        buttonsStyling: false,
+                        allowOutsideClick: false
+
+                        }).then(function (isConfirm) {
+
+                                if (isConfirm['dismiss']!='cancel' && isConfirm['dismiss']!='esc') {
+
+                                    Loader.open();
+                                    var formData = new FormData();
+                                    formData.append('action', 'eliminar');
+                                    formData.append('id', id);
+
+                                    $.ajax({
+                                        url: '/perfil',
+                                        type: "POST",
+                                        contentType: false,
+                                        data: formData,
+                                        processData: false,
+                                        cache: false,
+                                        success: function (data) {
+                                            if (data.result == "ok") {
+                                                swal("! Perfil","Se eliminó correctamente", "success").then((result) => {
+                                                 buscar();
+                                                });
+
+                                            } else {
+                                                swal("Error", data.message, "error");
+
+                                            }
+
+                                        }, error: function (xhr, ajaxOptions, thrownError) {
+                                            swal("Error", "Error Conexion en el Servidor", "error");
+
+                                        },
+
+                                        complete: function () {
+                                             Loader.close();
+                                        }
+                                    });
+
+                                }
+                      })
+
+
+                  }
+
+                  asignarmodulo=function (id,nombre){
+
+                        idperf=id;
+                        var idmodulos=[]
+                        $.post("/perfil", {
+                         "action": "buscarmoduloasignados",
+                         "id":idperf
+                        }, function (data) {
+                             if (data.result == 'ok') {
+
+                                $("#txtnombperfil").val(nombre);
+                                var modulosasi=""
+
+                                for (var x in data.modulos) {
+                                 modulosasi = modulosasi + '<option  value="' + data.modulos[x].id + '"> ' + data.modulos[x].nombre + '</option>';
+                                 idmodulos.push(parseInt(data.modulos[x].id))
+                                }
+                                $("#cmbasignarmodulo").html(modulosasi);
+
+
+                             } else {
+                                 swal("Error", data.message, "error");
+                             }
+                        }, 'json').fail(function() {
+                                swal("Error", 'Error de conexi&oacute;n vuelva a intentarlo', "error");
+
+                        }).always(function() {
+                            $("#cmbasignarmodulo").select2({
+                                   theme: "classic",
+                                   dropdownParent: $('#ventanasignarmodulo'),
+                                   ajax: {
+                                        type: "POST",
+                                        url: "/perfil",
+                                        dataType: 'json',
+                                        delay: 250,
+                                        data: function (params) {
+                                            return {
+                                                q: params.term, // search term
+                                                page: params.page,
+                                                action: "modulos",
+
+                                            };
+                                        },
+                                        processResults: function (data, params) {
+                                            // parse the results into the format expected by Select2
+                                            // since we are using custom formatting functions we do not need to
+                                            // alter the remote JSON data, except to indicate that infinite
+                                            // scrolling can be used
+                                            params.page = params.page || 1;
+
+                                            return {
+                                                results: data.items,
+                                                pagination: {
+                                                    more: (params.page * 30) < data.total_count
+                                                }
+                                            };
+                                        },
+                                        cache: true
+                                    },
+
+                                    minimumInputLength: 2,
+                                    templateResult: formatRepo,
+                                    templateSelection: formatRepoSelection,
+                                    placeholder: "Buscar",
+                                    language: {
+                                        inputTooShort: function () {
+                                            return 'Ingrese un nombre';
+                                        },
+                                        searching: function () {
+                                            return "Buscando Módulos...";
+                                        },
+                                        noResults: function () {
+                                            return "No se encontró información";
+                                        }
+                                    }
+                                });
+                            function formatRepo(repo) {
+                                    if (repo.loading) {
+                                        return repo.text;
+                                    }
+
+                                    var $container = $(
+                                        "<div class='select2-result-repository clearfix'>" +
+                                        "<div class='select2-result-repository__meta'>" +
+                                        "<div class='select2-result-repository__description'></div>" +
+                                        "</div>" +
+                                        "</div>"
+                                    );
+
+                                $container.find(".select2-result-repository__description").text(repo.nombre);
+
+                                return $container;
+                            }
+                            function formatRepoSelection(repo) {
+
+                                return repo.nombre || repo.text;
+                            }
+                            $("#cmbasignarmodulo").val(idmodulos);
+                            $('#cmbasignarmodulo').trigger('change.select2');
+                            $("#ventanasignarmodulo").modal({backdrop: 'static', keyboard: false});
+                            $("#ventanasignarmodulo").modal("show");
+                        });
+
+                  };
+                  
+                  $("#btncancelarasignarmodulo").click(function() {
+                     document.getElementById("frmasignarmodulo").reset();
+                     $("#ventanasignarmodulo").modal('hide');
+                  });
+                  
+                  $('#frmasignarmodulo').on('submit', function(e) {
+                      e.preventDefault();
+                      Loader.open();
+                      var formData = new FormData(this);
+                      formData.append('action', 'asignarmodulo');
+                      formData.append('id',  idperf);
+                      $.ajax({
+                         url: '/perfil',
+                         type: "POST",
+                         contentType: false,
+                         data: formData,
+                         processData: false,
+                         cache: false,
+                         success: function (data) {
+                             if (data.result == "ok") {
+
+                                 swal("! Perfil", "Se agregó/eliminó correctamente el/los modulo(s)", "success").then((result) => {
+                                         buscar();
+                                  });
+
+                             } else {
+                                 swal("Error", data.message, "error");
+                             }
+                         },
+                         error: function (xhr, ajaxOptions, thrownError) {
+                             swal("Error", "Error Conexion en el Servidor", "error");
+                         },
+                         complete: function(){
+                             Loader.close();
+                         }
+
+                      });
+
+                  });
+
+              });
+          });
+    </script>
+
+{% endblock %}
+
+{% block canvas %}
+    
+    <div class="col-sm-12">
+         <div class="card">
+            <div class="card-header d-flex justify-content-between">
+               <div class="header-title">
+                  <h4 class="card-title">Listado de Perfiles</h4>
+               </div>
+            </div>
+            <div class="card-body">
+                <div class="row d-flex justify-content-end">
+                    <div class="col-sm-4 col-md-4 col-lg-4">
+                        <button type="button" class="btn btn-primary" id="btnagregar">Agregar</button>
+                    </div>    
+                </div>    
+                <div class="table-responsive">
+                    <table id="tablaperfil" class="table table-striped"   >
+                 <thead>
+                    <tr>
+                       <th >Nombre</th>
+                       <th>Estado</th>
+                       <th style="align-content: center">...</th>
+                    </tr>
+
+                     <tr>
+                        <th class="filtro-columna filtro-nombre"></th>
+                        <th class="filtro-columna sin-filtrado"></th>
+                        <th class="filtro-columna sin-filtrado"></th>
+                    </tr>
+
+
+                 </thead>
+                 <tbody>
+                 </tbody>
+              </table>
+                </div>
+            </div>
+         </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="ventanaperfil" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="tituloventana" >Ingresar Perfil</h5>
+          </div>
+          <div class="modal-body">
+             <div class="card-body">
+               <form id="frmingresoperfil" method="post">
+                    <div class="form-group">
+                        <label class="form-label" for="nombre">Nombre:</label>
+                        <input type="txtnombre" class="form-control" id="txtnombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Estado</label>
+                        <select id="cmbestado" class="form-select form-select-lg shadow-none">
+                            <option value="1">Activo</option>
+                            <option value="2">Inactivo</option>
+                        </select>
+                    </div>
+                   <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" id="btncancelar">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnguardar">Guardar</button>
+                  </div>
+               </form>
+             </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="ventanasignarmodulo" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="tituloventanasignarmodulo" >Asignar Módulos</h5>
+          </div>
+          <div class="modal-body">
+             <div class="card-body">
+               <form id="frmasignarmodulo" novalidate method="post">
+                   <div class="row">
+                       <div class="col-sm-12 col-md-12 col-lg-12">
+                           <div class="form-group">
+                                <label class="form-label">Perfil :</label>
+                                 <input type="text" class="form-control" id="txtnombperfil"  readonly>
+                           </div>
+                       </div>
+                   </div>
+                   <div class="row">
+                       <div class="col-sm-12 col-md-12 col-lg-12">
+                           <div class="form-group">
+                                <label class="form-label">Módulo :</label>
+                                <select id="cmbasignarmodulo" name="cmbasignarmodulo" class="form-select mb-3 shadow-none" multiple style="width: 100%" required>
+                                    <option value="0">Seleccionar el módulo</option>
+                                </select>
+                           </div>
+                       </div>
+
+                   </div>
+                   <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" id="btncancelarasignarmodulo">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnguardarasignarmodulo">Guardar</button>
+                  </div>
+               </form>
+             </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+{% endblock %}    

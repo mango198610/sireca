@@ -87,7 +87,7 @@ DATABASES = {
          'USER': 'postgres',  # Not used with sqlite3.
          'PASSWORD': 'postgres',  # Not used with sqlite3.
          'HOST': 'localhost',  # Set to empty string for localhost. Not used with sqlite3.
-         'PORT': '5434',  # Set to empty string for default. Not used with sqlite3.
+         'PORT': '5433',  # Set to empty string for default. Not used with sqlite3.
      }
  }
 
@@ -132,3 +132,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LETRAS_ABECEDARIO_MIN = 'abcdfghijklmnopqrstuvwxyz'
+
+DEFAULT_PASSWORD = '123CONDU'

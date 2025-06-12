@@ -1,0 +1,295 @@
+{% extends "basebs.html" %}
+
+{% block heading %}
+
+    <script>
+          $(function () {
+              $(document).ready(function () {
+
+                  var idmodu=0;
+
+                  function buscar(){
+                       location.href = "/modulo?acc={{ permisopcion.id }}";
+                  }
+
+                  
+
+                  var tablamodulo=new DataTable('#tablamodulo', {
+                   language: {
+                        "lengthMenu": "Mostrar _MENU_ registros",
+                        "zeroRecords": "No existe información",
+                        "info": "Mostrando _PAGE_ de _PAGES_",
+                        "infoEmpty": "Sin datos",
+                        "infoFiltered": "(Filtrando de un total de _MAX_ registros)",
+                        "search": "Buscar",
+                        "paginate": {
+                            "previous": "Anterior",
+                            "next": "Siguiente"
+                        }
+                   },
+                   ajax: {
+                        url: '/modulo',
+                        type: 'POST',
+                        data: function (d) {
+                            d.action = 'serverSide';
+                        }
+                    },
+                    columns: [
+                         { data: 'nombre',"orderable": true },
+                         { data: 'url',"orderable": true },
+                         { data: 'estado',"orderable": true },
+                         { data: 'acciones',type: 'html' }
+                    ],
+                    processing: true,
+                    serverSide: true,
+                    fixedHeader: true,
+                    searching: true,
+		            search: true,
+		            info: false,
+                    initComplete: function () {
+                        var table = this.api();
+                        $('#' + 'tablamodulo' + '_filter').parent().addClass('d-none');
+                        $('.filtro-columna', table.table().header()).each(function () {
+                            var columnIndex = $(this).index();
+                            if(! $(this).hasClass('sin-filtrado')){
+                                var html = $('<input type="text" class="form-control form-control-sm form-control-filter" placeholder="Filtrar..."/>')
+                                .on('keyup change', function () {
+                                    table.column(columnIndex).search($(this).val()).draw();
+                                });
+
+                                $(this).html(html);
+                            }
+
+                        });
+
+                       table.columns.adjust();
+                    }
+                });
+                  
+
+                  $("#btnagregar").click(function() {
+                       $("#tituloventana").html("Ingresar Módulo");
+                       $("#ventanamodulo").modal({backdrop: 'static', keyboard: false});
+                       $("#ventanamodulo").modal("show");
+                  });
+
+                  $('#frmingresomodulo').on('submit', function(e) {
+                      e.preventDefault();
+                      Loader.open();
+                      var formData = new FormData();
+                      formData.append('action', 'agregar');
+                      formData.append('nombre', $("#txtnombre").val());
+                      formData.append('url',  $("#txturl").val());
+                      formData.append('estado',  $("#cmbestado").val());
+                      formData.append('id',  idmodu);
+                      $.ajax({
+                         url: '/modulo',
+                         type: "POST",
+                         contentType: false,
+                         data: formData,
+                         processData: false,
+                         cache: false,
+                         success: function (data) {
+                             if (data.result == "ok") {
+
+                                 swal("! Módulo", "Se ingreso correctamente", "success").then((result) => {
+                                         buscar();
+                                  });
+
+                             } else {
+                                 swal("Error", data.message, "error");
+                             }
+                         },
+                         error: function (xhr, ajaxOptions, thrownError) {
+                             swal("Error", "Error Conexion en el Servidor", "error");
+                         },
+                         complete: function(){
+                             Loader.close();
+                         }
+
+                      });
+
+                  });
+
+                  $("#btncancelar").click(function() {
+                     document.getElementById("frmingresomodulo").reset();
+                     $("#ventanamodulo").modal('hide');
+                  });
+
+
+                  editar=function (idmodulo){
+                         
+                         $("#tituloventana").html("Actualizar Módulo");
+                         
+                         idmodu=idmodulo;
+                         $.post("/modulo", {
+                             "action": "buscardata",
+                              "id":idmodulo
+                         }, function (data) {
+
+                             if (data.result == 'ok') {
+                                
+
+                                 $("#txtnombre").val(data.modulo[0].nombre);
+                                 $("#txturl").val(data.modulo[0].url);
+                                 $("#cmbestado").val(parseInt(data.modulo[0].estado));
+
+
+                             }else{
+                                  swal("Error", data.message, "error");
+                             }
+
+                         }, 'json').always(function() {
+
+                               $("#ventanamodulo").modal({backdrop: 'static', keyboard: false});
+                               $("#ventanamodulo").modal("show");
+
+                         });
+                  }
+
+                  eliminarmodulo = function (id,nombre) {
+
+                      swal({
+                        title: '¿Está seguro que desea eliminar el módulo?',
+                        text: "Módulo : "+nombre,
+                        type: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Si,Eliminar!',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonClass: 'btn btn-success me-2',
+                        cancelButtonClass: 'btn btn-danger ',
+                        buttonsStyling: false,
+                        allowOutsideClick: false
+
+                        }).then(function (isConfirm) {
+
+                                if (isConfirm['dismiss']!='cancel' && isConfirm['dismiss']!='esc') {
+
+                                    Loader.open();
+                                    var formData = new FormData();
+                                    formData.append('action', 'eliminar');
+                                    formData.append('id', id);
+
+                                    $.ajax({
+                                        url: '/modulo',
+                                        type: "POST",
+                                        contentType: false,
+                                        data: formData,
+                                        processData: false,
+                                        cache: false,
+                                        success: function (data) {
+                                            if (data.result == "ok") {
+                                                swal("! Módulo","Se eliminó correctamente", "success").then((result) => {
+                                                 buscar();
+                                                });
+
+                                            } else {
+                                                swal("Error", data.message, "error");
+
+                                            }
+
+                                        }, error: function (xhr, ajaxOptions, thrownError) {
+                                            swal("Error", "Error Conexion en el Servidor", "error");
+
+                                        },
+
+                                        complete: function () {
+                                             Loader.close();
+                                        }
+                                    });
+
+                                }
+                      })
+
+
+                  }
+
+
+
+              });
+          });
+    </script>
+
+{% endblock %}
+
+{% block canvas %}
+    
+    <div class="col-sm-12">
+         <div class="card">
+            <div class="card-header d-flex justify-content-between">
+               <div class="header-title">
+                  <h4 class="card-title">Listado de Modulos</h4>
+               </div>
+            </div>
+            <div class="card-body">
+                <div class="row d-flex justify-content-end">
+                    <div class="col-sm-4 col-md-4 col-lg-4">
+                        <button type="button" class="btn btn-primary" id="btnagregar">Agregar</button>
+                    </div>    
+                </div>    
+                <div class="table-responsive">
+                    <table id="tablamodulo" class="table table-striped"   >
+                 <thead>
+                    <tr>
+                       <th >Nombre</th>
+                       <th >Url</th>
+                       <th>Estado</th>
+                       <th style="align-content: center">...</th>
+                    </tr>
+
+                     <tr>
+                        <th class="filtro-columna filtro-nombre"></th>
+                        <th class="filtro-columna filtro-url"></th>
+                        <th class="filtro-columna sin-filtrado"></th>
+                        <th class="filtro-columna sin-filtrado"></th>
+                    </tr>
+
+
+                 </thead>
+                 <tbody>
+                 </tbody>
+              </table>
+                </div>
+            </div>
+         </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="ventanamodulo" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="tituloventana" >Ingresar Módulo</h5>
+          </div>
+          <div class="modal-body">
+             <div class="card-body">
+               <form id="frmingresomodulo" method="post">
+                    <div class="form-group">
+                        <label class="form-label" for="nombre">Nombre:</label>
+                        <input type="txtnombre" class="form-control" id="txtnombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="nombre">Url:</label>
+                        <input type="txturl" class="form-control" id="txturl" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Estado</label>
+                        <select id="cmbestado" class="form-select form-select-lg shadow-none">
+                            <option value="1">Activo</option>
+                            <option value="2">Inactivo</option>
+                        </select>
+                    </div>
+                   <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" id="btncancelar">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnguardar">Guardar</button>
+                  </div>
+               </form>
+             </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+{% endblock %}    

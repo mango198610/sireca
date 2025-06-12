@@ -1,0 +1,249 @@
+{% extends "basebs.html" %}
+
+{% block heading %}
+
+    <script>
+          $(function () {
+              $(document).ready(function () {
+
+                  function buscar(){
+                       location.href = "/usuario?acc={{ permisopcion.id }}";
+                  }
+
+                  
+
+                  var tablausuario=new DataTable('#tablausuario', {
+                   language: {
+                        "lengthMenu": "Mostrar _MENU_ registros",
+                        "zeroRecords": "No existe información",
+                        "info": "Mostrando _PAGE_ de _PAGES_",
+                        "infoEmpty": "Sin datos",
+                        "infoFiltered": "(Filtrando de un total de _MAX_ registros)",
+                        "search": "Buscar",
+                        "paginate": {
+                            "previous": "Anterior",
+                            "next": "Siguiente"
+                        }
+                   },
+                   ajax: {
+                        url: '/usuario',
+                        type: 'POST',
+                        data: function (d) {
+                            d.action = 'serverSide';
+                        }
+                    },
+                    columns: [
+                         { data: 'nombre',"orderable": true },
+                         { data: 'username',"orderable": true },
+                         { data: 'email',"orderable": true },
+                         { data: 'superusuario',"orderable": true },
+                         { data: 'estado',"orderable": true },
+                         { data: 'acciones',type: 'html' }
+                    ],
+                    processing: true,
+                    serverSide: true,
+                    fixedHeader: true,
+                    searching: true,
+		            search: true,
+		            info: false,
+                    initComplete: function () {
+                        var table = this.api();
+                        $('#' + 'tablausuario' + '_filter').parent().addClass('d-none');
+                        $('.filtro-columna', table.table().header()).each(function () {
+                            var columnIndex = $(this).index();
+                            if(! $(this).hasClass('sin-filtrado')){
+                                var html = $('<input type="text" class="form-control form-control-sm form-control-filter" placeholder="Filtrar..."/>')
+                                .on('keyup change', function () {
+                                    table.column(columnIndex).search($(this).val()).draw();
+                                });
+
+                                $(this).html(html);
+                            }
+
+                        });
+
+                       table.columns.adjust();
+                    }
+                });
+                  
+                 $("#removerbusq").click(function () {
+                        $("#removerbusq").addClass('d-none');
+                        $('#busmenumod').val('');
+                        $("#accordion-menu .dropdown").each(function () {
+                            var obpadre = this;
+                            $(obpadre).children('ul').find('li').each(function () {
+                                $(this).removeClass('d-none');
+                            });
+        
+                           $(obpadre).removeClass('d-none')
+                            $(obpadre).removeClass('show');
+                            $(obpadre).children('a').attr('data-option','off');
+                            $(obpadre).children('ul').css('display','none');
+        
+                        });
+                });  
+                  
+                cambiarcontrasena = function (id,nombre) {
+                                           
+                      swal({
+                        title: '¿Está seguro que desea resetear a la contraseña por defector {{ DEFAULT_PASSWORD }} ?',
+                        text: "Usuario : "+nombre,
+                        type: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Si!',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonClass: 'btn btn-success me-2',
+                        cancelButtonClass: 'btn btn-danger ',
+                        buttonsStyling: false,
+                        allowOutsideClick: false
+
+                        }).then(function (isConfirm) {
+
+                                if (isConfirm['dismiss']!='cancel' && isConfirm['dismiss']!='esc') {
+
+                                    Loader.open();
+                                    var formData = new FormData();
+                                    formData.append('action', 'resetear');
+                                    formData.append('id', id);
+
+                                    $.ajax({
+                                        url: '/usuario',
+                                        type: "POST",
+                                        contentType: false,
+                                        data: formData,
+                                        processData: false,
+                                        cache: false,
+                                        success: function (data) {
+                                            if (data.result == "ok") {
+                                                swal("! Usuario","Se actualizó correctamente la contraseña ", "success").then((result) => {
+                                                 buscar();
+                                                });
+
+                                            } else {
+                                                swal("Error", data.message, "error");
+
+                                            }
+
+                                        }, error: function (xhr, ajaxOptions, thrownError) {
+                                            swal("Error", "Error Conexion en el Servidor", "error");
+
+                                        },
+
+                                        complete: function () {
+                                             Loader.close();
+                                        }
+                                    });
+
+                                }
+                      })
+
+
+                  }
+
+                  activarinactiva=function (id,nombre){
+                    
+                    swal({
+                        title: '¿Está seguro que desea cambiar el estado ?',
+                        text: "Usuario : "+nombre,
+                        type: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Si!',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonClass: 'btn btn-success me-2',
+                        cancelButtonClass: 'btn btn-danger ',
+                        buttonsStyling: false,
+                        allowOutsideClick: false
+
+                        }).then(function (isConfirm) {
+
+                                if (isConfirm['dismiss']!='cancel' && isConfirm['dismiss']!='esc') {
+
+                                    Loader.open();
+                                    var formData = new FormData();
+                                    formData.append('action', 'cambiarestado');
+                                    formData.append('id', id);
+
+                                    $.ajax({
+                                        url: '/usuario',
+                                        type: "POST",
+                                        contentType: false,
+                                        data: formData,
+                                        processData: false,
+                                        cache: false,
+                                        success: function (data) {
+                                            if (data.result == "ok") {
+                                                swal("! Usuario","Se actualizó correctamente el estado del usuario ", "success").then((result) => {
+                                                 buscar();
+                                                });
+
+                                            } else {
+                                                swal("Error", data.message, "error");
+
+                                            }
+
+                                        }, error: function (xhr, ajaxOptions, thrownError) {
+                                            swal("Error", "Error Conexion en el Servidor", "error");
+
+                                        },
+
+                                        complete: function () {
+                                             Loader.close();
+                                        }
+                                    });
+
+                                }
+                      })
+                    
+                  }
+
+              });
+          });
+    </script>
+
+{% endblock %}
+
+{% block canvas %}
+    
+    <div class="col-sm-12">
+         <div class="card">
+            <div class="card-header d-flex justify-content-between">
+               <div class="header-title">
+                  <h4 class="card-title">Listado de Usuarios</h4>
+               </div>
+            </div>
+            <div class="card-body">
+
+                <div class="table-responsive">
+                    <table id="tablausuario" class="table table-striped"   >
+                 <thead>
+                    <tr>
+                       <th >Nombres</th>
+                       <th >Username</th>
+                       <th >Email</th> 
+                       <th >Super Usuario</th>
+                       <th>Estado</th>
+                       <th style="align-content: center">...</th>
+                    </tr>
+
+                     <tr>
+                        <th class="filtro-columna filtro-nombres"></th>
+                        <th class="filtro-columna filtro-username"></th>
+                        <th class="filtro-columna sin-filtrado"></th>
+                        <th class="filtro-columna sin-filtrado"></th>
+                        <th class="filtro-columna sin-filtrado"></th>
+                        <th class="filtro-columna sin-filtrado"></th>
+                    </tr>
+
+
+                 </thead>
+                 <tbody>
+                 </tbody>
+              </table>
+                </div>
+            </div>
+         </div>
+      </div>
+    </div>
+
+    
+{% endblock %}    
