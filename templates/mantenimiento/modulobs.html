@@ -76,6 +76,7 @@
                   $('#frmingresomodulo').on('submit', function(e) {
                       e.preventDefault();
                       Loader.open();
+                      var mensapresentacion= idmodu==0 ? 'Se ingreso correctamente' : 'Se actualizo correctamente'
                       var formData = new FormData();
                       formData.append('action', 'agregar');
                       formData.append('nombre', $("#txtnombre").val());
@@ -92,7 +93,7 @@
                          success: function (data) {
                              if (data.result == "ok") {
 
-                                 swal("! Módulo", "Se ingreso correctamente", "success").then((result) => {
+                                 swal("! Módulo", mensapresentacion, "success").then((result) => {
                                          buscar();
                                   });
 

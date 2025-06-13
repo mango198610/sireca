@@ -12,6 +12,9 @@ class Perfil (models.Model):
     def __str__(self):
         return self.nombre
 
+    def moduloperfil(self):
+        return ModuloPerfil.objects.filter(perfil=self)
+
 
 class Modulo(models.Model):
     nombre= models.CharField(max_length=200)
