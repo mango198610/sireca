@@ -13,7 +13,7 @@ class Perfil (models.Model):
         return self.nombre
 
     def moduloperfil(self):
-        return ModuloPerfil.objects.filter(perfil=self)
+        return list(ModuloPerfil.objects.filter().values_list('modulo_id', flat=True))
 
 
 class Modulo(models.Model):
@@ -36,6 +36,7 @@ class ModuloPerfil(models.Model):
 
 class Provincia(models.Model):
     nombre = models.CharField(max_length=100)
+    estado = models.BooleanField(default=True)
 
     def __unicode__(self):
         return self.nombre

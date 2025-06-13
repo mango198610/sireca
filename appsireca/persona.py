@@ -1,5 +1,5 @@
 import json
-
+from datetime import datetime
 from django.contrib.admin.models import LogEntry, CHANGE, ADDITION, DELETION
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
@@ -8,8 +8,9 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils.encoding import force_str as force_text
 
-from appsireca.funciones import ip_client_address
-from appsireca.models import Persona, Canton, Parroquia, AccesoModulo, Sexo, Nacionalidad, Provincia, Perfil
+from appsireca.funciones import ip_client_address, MiPaginador
+from appsireca.models import Persona, Canton, Parroquia, AccesoModulo, Sexo, Nacionalidad, Provincia, Perfil, \
+    TipoIdentificacion
 from appsireca.views import addUserData
 
 
@@ -21,11 +22,42 @@ def view(request):
             if action == 'agregar':
                 try:
                     data = {'title': ''}
-                    if int(request.POST['id'])==0:
-                        if Persona.objects.filter(identificacion=request.POST['txtidentificacion']).exists():
-                            return HttpResponse(json.dumps({'result': 'bad', 'message': 'La Persona ya se encuentra registrada'}),
-                                                content_type="application/json")
+                    extranjero = False
+                    if int(request.POST.get('id')) == 0:
+                        if Persona.objects.filter(identificacion=request.POST.get('txtidentificacion')).exists():
+                            return HttpResponse(
+                                json.dumps({'result': 'bad', 'message': 'La Persona ya se encuentra registrada'}),
+                                content_type="application/json")
                         mensaje = 'Nueva persona'
+
+                        if int(request.POST.get('cmbtipoidentificacion')) == 2:
+                            extranjero = True
+
+                        persona = Persona(tipoidentificacion_id=int(request.POST.get('cmbtipoidentificacion')),
+                                          identificacion=request.POST.get('txtidentificacion'),
+                                          nombres=request.POST.get('txtnombres'),
+                                          apellido1=request.POST.get('txtapellido1'),
+                                          apellido2=request.POST.get('txtapellido2'), extranjero=extranjero,
+                                          nacionalidad_id=int(request.POST.get('cmbnacionalidad')),
+                                          provincia_id=int(request.POST.get('cmbprovincia')) if int(
+                                              request.POST.get('cmbprovincia')) > 0 else None,
+                                          canton_id=int(request.POST.get('cmbcanton')) if int(
+                                              request.POST.get('cmbcanton')) else None,
+                                          sexo_id=int(request.POST.get('cmbsexo')), madre=request.POST.get('txtmadre'),
+                                          padre=request.POST.get('txtpadre'),
+                                          direccion=request.POST.get('txtcalleprincipal'),
+                                          direccion2=request.POST.get('txtcallesecundaria'),
+                                          num_direccion=request.POST.get('txtnumdomicilio'),
+                                          sector=request.POST.get('textsector'),
+                                          provinciaresid_id=int(request.POST.get('cmbprovinciaresidencia')),
+                                          cantonresid_id=int(request.POST.get('cmbcantonresidencia')),
+                                          parroquia_id=int(request.POST.get('cmbparroquia')),
+                                          telefono=request.POST.get('txtcelular'),
+                                          telefono_conv=request.POST.get('txtfijo'),
+                                          email=request.POST.get('txtcorreo1'),
+                                          email1=request.POST.get('txtcorreo2'), email2=request.POST.get('txtcorreo3'),
+                                          nacimiento=request.POST.get('dtbfechanacimiento'),
+                                          fecha_registro=datetime.now())
 
 
                     else:
@@ -42,14 +74,13 @@ def view(request):
                         content_type_id=ContentType.objects.get_for_model(persona).pk,
                         object_id=persona.id,
                         object_repr=force_text(persona),
-                        action_flag=ADDITION if int(request.POST['id'])==0 else CHANGE,
+                        action_flag=ADDITION if int(request.POST['id']) == 0 else CHANGE,
                         change_message=mensaje + ' (' + client_address + ')')
                     data['result'] = 'ok'
                     return HttpResponse(json.dumps(data), content_type="application/json")
                 except Exception as ex:
                     return HttpResponse(json.dumps({'result': 'bad', 'message': str(ex)}),
                                         content_type="application/json")
-
 
             if action == 'eliminar':
                 try:
@@ -120,6 +151,42 @@ def view(request):
                                         content_type="application/json")
 
 
+            elif action == 'perfiles':
+                try:
+                    ss = request.POST['q'].split(' ')
+                    persona=Persona.objects.get(pk=int(request.POST['idpersona']))
+                    while '' in ss:
+                        ss.remove('')
+                    if len(ss) == 1:
+
+                        perfiles = Perfil.objects.filter(nombre__icontains=request.POST['q'],estado=True).order_by(
+                            'nombre')
+                    else:
+
+                        perfiles = Perfil.objects.filter(
+                            Q(nombre__icontains=ss[0]) & Q(
+                                nombre__icontains=ss[1]),estado=True).order_by(
+                            'nombre')
+
+                    paging = MiPaginador(perfiles.exclude(id__in=persona.perfiles().values_list('perfil_id',flat=True)), 30)
+                    p = 1
+                    try:
+                        if 'page' in request.POST:
+                            p = int(request.POST['page'])
+                        page = paging.page(p)
+                    except:
+                        page = paging.page(p)
+
+                    lista = [{"id": d.id, "nombre": str(d)} for d in
+                             page.object_list]
+
+                    return HttpResponse(json.dumps({'result': 'ok', 'items': lista, 'page': p}),
+                                        content_type="application/json")
+
+                except Exception as ex:
+                    return HttpResponse(json.dumps({"result": "bad", "message": ex}), content_type="application/json")
+
+
             elif action == 'serverSide':
                 try:
                     lista = []
@@ -180,17 +247,27 @@ def view(request):
                         htmlAcciones += ' <li><a class="dropdown-item" style="cursor: pointer" onclick="editar(' + str(
                             d.id) + ');"><i class="dw dw-edit-2"></i>  Editar</a></li>'
 
-                        htmlAcciones += ' <li><a class="dropdown-item" style="cursor: pointer" onclick="eliminarmodulo(' + str(
+                        if not d.usuario:
+                            htmlAcciones += ' <li><a class="dropdown-item" style="cursor: pointer" onclick="agregarusuario(' + str(
+                                d.id) + ',\'' + str(
+                                d.nombre_completo_inverso()).upper() + '\');"><i class="dw dw-user2"></i>  Agregar Usuario</a></li>'
+                        else:
+
+                            htmlAcciones += ' <li><a class="dropdown-item" style="cursor: pointer" onclick="asignarperfil(' + str(
+                                d.id) + ',\'' + str(
+                                d.nombre_completo_inverso()).upper() + '\');"><i class="dw dw-menu"></i> Asignar Perfil </a></li>'
+
+                        htmlAcciones += ' <li><a class="dropdown-item" style="cursor: pointer" onclick="eliminarpersona(' + str(
                             d.id) + ',\'' + str(
                             d.nombres).upper() + '\');"><i class="dw dw-delete-3"></i>  Eliminar</a></li>'
 
 
                         lista.append({
-                            'nombre': str(d.nombres),
+                            'nombre': str(d.nombre_completo_inverso()),
                             'usuario': str(d.usuario.username),
                             'identificacion': str(d.identificacion),
                             'telefono': str(d.telefono if d.telefono else '---'),
-                            'fechaingreso': str(d.fechaingreso),
+                            'fechaingreso': str(d.fecha_registro.strftime('%Y-%m-%d')),
                             'perfiles': [p.perfil.nombre for p in d.perfiles()],
                             'estado': str("ACTIVO" if d.usuario.is_active else "INACTIVO"),
                               'acciones': f'''
@@ -228,10 +305,11 @@ def view(request):
             data = {'title':'Persona'}
             addUserData(request, data)
             data['permisopcion'] = AccesoModulo.objects.get(id=int(request.GET['acc']))
-            data['listanacionalidad'] = Nacionalidad.objects.filter()
+            data['listanacionalidad'] = Nacionalidad.objects.filter(estado=True)
             data['listasexo'] = Sexo.objects.filter()
-            data['listaprovincia'] = Provincia.objects.filter()
+            data['listaprovincia'] = Provincia.objects.filter(estado=True)
             data['listaperfil'] = Perfil.objects.filter(estado=True)
+            data['listatipoidentifcacion'] = TipoIdentificacion.objects.filter(estado=True)
 
 
 

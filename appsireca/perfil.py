@@ -172,10 +172,7 @@ def view(request):
                                 accesomodulo.save()
 
                     # verificar si se quito un modulo del perfil
-                    ids_antes = [m.id for m in listamoduloantes]
-                    ids_ingreso = [m for m in listamoduloingreso]
-                    ideliminados = list(set(ids_antes) - set(ids_ingreso))
-
+                    ideliminados = list(set(listamoduloantes) - set(list(listamoduloingreso)))
                     if ideliminados:
                         ModuloPerfil.objects.filter(perfil=perfil, modulo__id__in=ideliminados).delete()
                         AccesoModulo.objects.filter(perfilpersona__perfil=perfil, modulo__id__in=ideliminados).delete()
