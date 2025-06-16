@@ -3,6 +3,7 @@ import json
 import unicodedata
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import HttpResponse
 
 from appsireca.models import Canton
@@ -71,11 +72,24 @@ def calculate_username(persona, variant=''):
 
 def buscarcanton(idprovincia, strnombre):
     listCan = [{"id": 0, "nombre": "Seleccionar el Cantón"}]
+
     try:
         model = (
-            Canton.objects.filter(provincia_id=idprovincia)
+
             if idprovincia > 0
-            else Canton.objects.filter(nombre__icontains=strnombre)
+                Canton.objects.filter(provincia_id=idprovincia)
+            else:
+                while '' in strnombre:
+                    strnombre.remove('')
+                if len(strnombre) == 1:
+
+                    Canton.objects.filter(nombre__icontains=strnombre).order_by('nombre')
+                else:
+
+                    Canton.objects.filter(
+                        Q(nombre__icontains=strnombre[0]) & Q(
+                            nombre__icontains=strnombre[1])).order_by(
+                        'nombre')
         )
         for g in model.order_by("nombre"):
             listCan.append({"id": g.id, "nombre": g.nombre})

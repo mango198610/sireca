@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils.encoding import force_str as force_text
-from appsireca.funciones import ip_client_address
+from appsireca.funciones import ip_client_address, buscarcanton
 from appsireca.models import AccesoModulo, Parroquia
 from appsireca.views import addUserData
 
@@ -58,7 +58,7 @@ def view(request):
             elif action == 'buscarcanton':
                 try:
                     data = {'title': ''}
-                    data['listacantondatos'] = buscarcanton(0,)
+                    data['listacantondatos'] = buscarcanton(0,request.POST['q'].split(' '))
                     data['result'] = 'ok'
                     return HttpResponse(json.dumps(data), content_type="application/json")
                 except Exception as e:
