@@ -6,10 +6,9 @@ from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
-
 from django.utils.encoding import force_str as force_text
 from appsireca.funciones import ip_client_address
-from appsireca.models import AccesoModulo, Banco
+from appsireca.models import AccesoModulo, Parroquia
 from appsireca.views import addUserData
 
 
@@ -27,26 +26,26 @@ def view(request):
                     else:
                         estado = False
                     if int(request.POST['id'])==0:
-                        if Banco.objects.filter(nombre__icontains=nombre).exists():
+                        if Parroquia.objects.filter(nombre__icontains=nombre).exists():
                             return HttpResponse(json.dumps({'result': 'bad', 'message': 'El banco ya se encuentra registrada'}),
                                                 content_type="application/json")
                         mensaje = 'Nuevo banco'
-                        banco = Banco(nombre=nombre,estado=estado)
+                        parroquia = Parroquia(nombre=nombre,estado=estado)
 
                     else:
                         mensaje = 'Actualizado banco'
-                        banco = Banco.objects.get(id=int(request.POST['id']))
-                        banco.nombre = nombre
-                        banco.estado = estado
+                        parroquia = Parroquia.objects.get(id=int(request.POST['id']))
+                        parroquia.nombre = nombre
+                        parroquia.estado = estado
 
-                    banco.save()
+                    parroquia.save()
 
                     client_address = ip_client_address(request)
                     LogEntry.objects.log_action(
                         user_id=request.user.pk,
-                        content_type_id=ContentType.objects.get_for_model(banco).pk,
-                        object_id=banco.id,
-                        object_repr=force_text(banco),
+                        content_type_id=ContentType.objects.get_for_model(parroquia).pk,
+                        object_id=parroquia.id,
+                        object_repr=force_text(parroquia),
                         action_flag=ADDITION,
                         change_message=mensaje + ' (' + client_address + ')')
                     data['result'] = 'ok'
@@ -56,19 +55,30 @@ def view(request):
                                         content_type="application/json")
 
 
+            elif action == 'buscarcanton':
+                try:
+                    data = {'title': ''}
+                    data['listacantondatos'] = buscarcanton(0,)
+                    data['result'] = 'ok'
+                    return HttpResponse(json.dumps(data), content_type="application/json")
+                except Exception as e:
+                    return HttpResponse(json.dumps({'result': 'bad', 'message': str(e)}),
+                                        content_type="application/json")
+
+
             if action == 'eliminar':
                 try:
-                    banco=Banco.objects.get(pk=int(request.POST['id']))
+                    parroquia=Parroquia.objects.get(pk=int(request.POST['id']))
                     client_address = ip_client_address(request)
                     LogEntry.objects.log_action(
                         user_id=request.user.pk,
-                        content_type_id=ContentType.objects.get_for_model(banco).pk,
-                        object_id=banco.id,
-                        object_repr=force_text(banco),
+                        content_type_id=ContentType.objects.get_for_model(parroquia).pk,
+                        object_id=parroquia.id,
+                        object_repr=force_text(parroquia),
                         action_flag=DELETION,
-                        change_message=str('banco eliminado por el usuario ') + str(request.user.username) + ' (' + client_address + ')')
+                        change_message=str('parroquia eliminado por el usuario ') + str(request.user.username) + ' (' + client_address + ')')
 
-                    banco.delete()
+                    parroquia.delete()
 
                     return HttpResponse(json.dumps({'result': 'ok'}), content_type="application/json")
                 except Exception as e:
@@ -80,10 +90,10 @@ def view(request):
                 try:
                     data = {'title': ''}
 
-                    banco = Banco.objects.get(pk=int(request.POST['id']))
+                    parroquia = Parroquia.objects.get(pk=int(request.POST['id']))
                     data['banco'] = [
-                        {'id': banco.id,
-                         "nombre": str(banco.nombre),"estado": "1" if banco.estado else "2"
+                        {'id': parroquia.id,
+                         "nombre": str(parroquia.nombre),"estado": "1" if parroquia.estado else "2"
                          }]
 
                     data['result'] = 'ok'
@@ -102,8 +112,8 @@ def view(request):
                     length = int(request.POST.get('length', 10))
                     busqueda = str(request.POST['search[value]']) if 'search[value]' in request.POST else None
 
-                    listabanco = Banco.objects.filter()
-                    registros_total = listabanco.count()
+                    listaparroquia = Parroquia.objects.filter() if request.user.is_superuser else  Parroquia.objects.filter(estado=True)
+                    registros_total = listaparroquia.count()
                     if busqueda:
                         search = busqueda
                         if search:
@@ -111,11 +121,11 @@ def view(request):
                             while '' in ss:
                                 ss.remove('')
                             if len(ss) == 1:
-                                listabanco = listabanco.filter(
+                                listaparroquia = listaparroquia.filter(
                                     nombre__icontains=search).order_by('nombre')
                                 filtrado = True
                             else:
-                                listabanco = listabanco.filter(
+                                listaparroquia = listaparroquia.filter(
                                     Q(nombre__icontains=ss[0]) & Q(
                                         nombres__icontains=ss[1])).order_by('nombre')
                                 filtrado = True
@@ -127,25 +137,25 @@ def view(request):
                             while '' in ss:
                                 ss.remove('')
                             if len(ss) == 1:
-                                listabanco = listabanco.filter(
+                                listaparroquia = listaparroquia.filter(
                                     nombre__icontains=search).order_by('nombre')
                                 filtrado = True
                             else:
-                                listabanco = listabanco.filter(
+                                listaparroquia = listaparroquia.filter(
                                     Q(nombre__icontains=ss[0]) & Q(
                                         nombre__icontains=ss[1])).order_by('nombre')
                                 filtrado = True
 
                     if request.POST['columns[1][search][value]'] != '':
                         url = request.POST['columns[1][search][value]']
-                        listabanco = listabanco.filter(url__icontains=url)
+                        listaparroquia = listaparroquia.filter(url__icontains=url)
 
                         filtrado = True
 
 
-                    listabanco = listabanco.order_by('nombre')
-                    registros = listabanco[start:start + length] if length != -1 else listabanco
-                    registros_filtrado = listabanco.count()
+                    listaparroquia = listaparroquia.order_by('nombre')
+                    registros = listaparroquia[start:start + length] if length != -1 else listaparroquia
+                    registros_filtrado = listaparroquia.count()
 
                     for d in registros:
                         htmlAcciones = ''
@@ -153,13 +163,15 @@ def view(request):
                         htmlAcciones += ' <li><a class="dropdown-item" style="cursor: pointer" onclick="editar(' + str(
                             d.id) + ');"><i class="dw dw-edit-2"></i>  Editar</a></li>'
 
-                        htmlAcciones += ' <li><a class="dropdown-item" style="cursor: pointer" onclick="eliminarbanco(' + str(
+                        htmlAcciones += ' <li><a class="dropdown-item" style="cursor: pointer" onclick="eliminarProvincia(' + str(
                             d.id) + ',\'' + str(
                             d.nombre).upper() + '\');"><i class="dw dw-delete-3"></i>  Eliminar</a></li>'
 
 
                         lista.append({
-                            'nombre': str(d.nombre),
+                            'provincia':str(d.canton.provincia.nombre),
+                            'canton': str(d.canton.nombre),
+                            'parroquia': str(d.nombre),
                             'estado': str("ACTIVO" if d.estado else "INACTIVO"),
                               'acciones': f'''
                                         <div class="dropdown">
@@ -193,11 +205,11 @@ def view(request):
                                         content_type="application/json")
 
         else:
-            data = {'title':'Bancos'}
+            data = {'title':'Parroquia'}
             addUserData(request, data)
             data['permisopcion'] = AccesoModulo.objects.get(id=int(request.GET['acc']))
 
-            return render(request, "mantenimiento/bancobs.html", data)
+            return render(request, "mantenimiento/parroquia.html", data)
 
     except Exception as e:
         print('Error excepcion cursos '+str(e))

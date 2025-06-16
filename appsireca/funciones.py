@@ -1,7 +1,11 @@
+import json
+
 import unicodedata
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
+from django.http import HttpResponse
 
+from appsireca.models import Canton
 from sireca.settings import LETRAS_ABECEDARIO_MIN
 
 
@@ -64,4 +68,18 @@ def calculate_username(persona, variant=''):
             return calculate_username(persona, '_' + usernamevariant.split('_')[1] + LETRAS_ABECEDARIO_MIN[numero])
         else:
             return calculate_username(persona, '_'+LETRAS_ABECEDARIO_MIN[User.objects.filter(username=usernamevariant).count()-1])
+
+def buscarcanton(idprovincia, strnombre):
+    listCan = [{"id": 0, "nombre": "Seleccionar el Cantón"}]
+    try:
+        model = (
+            Canton.objects.filter(provincia_id=idprovincia)
+            if idprovincia > 0
+            else Canton.objects.filter(nombre__icontains=strnombre)
+        )
+        for g in model.order_by("nombre"):
+            listCan.append({"id": g.id, "nombre": g.nombre})
+        return listCan
+    except Exception as e:
+        return listCan
 

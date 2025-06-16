@@ -77,8 +77,9 @@ class Sexo(models.Model):
 
 
 class Parroquia(models.Model):
-    nombre = models.CharField(max_length=100)
+    nombre = models.CharField(max_length=500)
     canton = models.ForeignKey(Canton, on_delete=models.CASCADE)
+    estado = models.BooleanField(default=True)
 
     def __unicode__(self):
         return self.nombre

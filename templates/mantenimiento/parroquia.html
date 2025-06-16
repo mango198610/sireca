@@ -6,15 +6,15 @@
           $(function () {
               $(document).ready(function () {
 
-                  var idbanco=0;
+                  var idparroquia=0;
 
                   function buscar(){
-                       location.href = "/banco?acc={{ permisopcion.id }}";
+                       location.href = "/parroquia?acc={{ permisopcion.id }}";
                   }
 
 
 
-                  var tablabancos=new DataTable('#tablabanco', {
+                  var tablaparroquia=new DataTable('#tablaparroquia', {
                    language: {
                         "lengthMenu": "Mostrar _MENU_ registros",
                         "zeroRecords": "No existe información",
@@ -28,14 +28,16 @@
                         }
                    },
                    ajax: {
-                        url: '/banco',
+                        url: '/parroquia',
                         type: 'POST',
                         data: function (d) {
                             d.action = 'serverSide';
                         }
                     },
                     columns: [
-                         { data: 'nombre',"orderable": true },
+                         { data: 'provincia',"orderable": true },
+                         { data: 'canton',"orderable": true },
+                         { data: 'parroquia',"orderable": true },
                          { data: 'estado',"orderable": true },
                          { data: 'acciones',type: 'html' }
                     ],
@@ -47,7 +49,7 @@
 		            info: false,
                     initComplete: function () {
                         var table = this.api();
-                        $('#' + 'tablabanco' + '_filter').parent().addClass('d-none');
+                        $('#' + 'tablaparroquia' + '_filter').parent().addClass('d-none');
                         $('.filtro-columna', table.table().header()).each(function () {
                             var columnIndex = $(this).index();
                             if(! $(this).hasClass('sin-filtrado')){
@@ -67,22 +69,97 @@
 
 
                   $("#btnagregar").click(function() {
-                       $("#tituloventana").html("Ingresar Banco");
-                       $("#ventanabanco").modal({backdrop: 'static', keyboard: false});
-                       $("#ventanabanco").modal("show");
+                       $("#tituloventana").html("Ingresar Parroquia");
+
+                         $("#cmbgrupo").select2({
+                           theme: "classic",
+                           dropdownParent: $('#ventanaparroquia'),
+                           ajax: {
+                                type: "POST",
+                                url: "/parroquia",
+                                dataType: 'json',
+                                delay: 250,
+                                data: function (params) {
+                                    return {
+                                        q: params.term, // search term
+                                        page: params.page,
+                                        action: "grupos",
+
+                                    };
+                                },
+                                processResults: function (data, params) {
+                                    // parse the results into the format expected by Select2
+                                    // since we are using custom formatting functions we do not need to
+                                    // alter the remote JSON data, except to indicate that infinite
+                                    // scrolling can be used
+                                    params.page = params.page || 1;
+
+                                    return {
+                                        results: data.items,
+                                        pagination: {
+                                            more: (params.page * 30) < data.total_count
+                                        }
+                                    };
+                                },
+                                cache: true
+                            },
+
+                            minimumInputLength: 2,
+                            templateResult: formatRepo,
+                            templateSelection: formatRepoSelection,
+                            placeholder: "Buscar Cantón",
+                            language: {
+                                inputTooShort: function () {
+                                    return 'Ingrese un nombre';
+                                },
+                                searching: function () {
+                                    return "Buscando Cantón...";
+                                },
+                                noResults: function () {
+                                    return "No se encontró información";
+                                }
+                            }
+                        });
+
+                        function formatRepo(repo) {
+                                if (repo.loading) {
+                                    return repo.text;
+                                }
+
+                                var $container = $(
+                                    "<div class='select2-result-repository clearfix'>" +
+                                    "<div class='select2-result-repository__meta'>" +
+                                    "<div class='select2-result-repository__description'></div>" +
+                                    "</div>" +
+                                    "</div>"
+                                );
+
+                            $container.find(".select2-result-repository__description").text(repo.nombre);
+
+                            return $container;
+                        }
+
+                        function formatRepoSelection(repo) {
+
+                            return repo.nombre || repo.text;
+                        }
+
+
+                       $("#ventanaparroquia").modal({backdrop: 'static', keyboard: false});
+                       $("#ventanaparroquia").modal("show");
                   });
 
-                  $('#frmingresobanco').on('submit', function(e) {
+                  $('#frmingresoparroquia').on('submit', function(e) {
                       e.preventDefault();
                       Loader.open();
-                      var mensapresentacion= idbanco==0 ? 'Se ingreso correctamente' : 'Se actualizo correctamente'
+                      var mensapresentacion= idparroquia==0 ? 'Se ingreso correctamente' : 'Se actualizo correctamente'
                       var formData = new FormData();
                       formData.append('action', 'agregar');
                       formData.append('nombre', $("#txtnombre").val());
                       formData.append('estado',  $("#cmbestado").val());
                       formData.append('id',  idbanco);
                       $.ajax({
-                         url: '/banco',
+                         url: '/parroquia',
                          type: "POST",
                          contentType: false,
                          data: formData,
@@ -111,19 +188,19 @@
                   });
 
                   $("#btncancelar").click(function() {
-                     document.getElementById("frmingresobanco").reset();
-                     $("#ventanabanco").modal('hide');
+                     document.getElementById("frmingresoparroquia").reset();
+                     $("#ventanaparroquia").modal('hide');
                   });
 
 
-                  editar=function (idban){
+                  editar=function (idparro){
 
-                         $("#tituloventana").html("Actualizar Banco");
+                         $("#tituloventana").html("Actualizar Parroquia");
 
-                         idbanco=idban;
-                         $.post("/banco", {
+                         idparroquia=idparro;
+                         $.post("/parroquia", {
                              "action": "buscardata",
-                              "id":idbanco
+                              "id":idparroquia
                          }, function (data) {
 
                              if (data.result == 'ok') {
@@ -145,11 +222,11 @@
                          });
                   }
 
-                  eliminarbanco = function (id,nombre) {
+                  eliminarparroquia = function (id,nombre) {
 
                       swal({
-                        title: '¿Está seguro que desea eliminar el banco?',
-                        text: "Banco : "+nombre,
+                        title: '¿Está seguro que desea eliminar la parroquia?',
+                        text: "Parroquia : "+nombre,
                         type: 'warning',
                         showCancelButton: true,
                         confirmButtonText: 'Si,Eliminar!',
@@ -169,7 +246,7 @@
                                     formData.append('id', id);
 
                                     $.ajax({
-                                        url: '/banco',
+                                        url: '/parroquia',
                                         type: "POST",
                                         contentType: false,
                                         data: formData,
@@ -177,7 +254,7 @@
                                         cache: false,
                                         success: function (data) {
                                             if (data.result == "ok") {
-                                                swal("! Banco","Se eliminó correctamente", "success").then((result) => {
+                                                swal("! Parroquia","Se eliminó correctamente", "success").then((result) => {
                                                  buscar();
                                                 });
 
@@ -216,7 +293,7 @@
          <div class="card">
             <div class="card-header d-flex justify-content-between">
                <div class="header-title">
-                  <h4 class="card-title">Listado de Bancos</h4>
+                  <h4 class="card-title">Listado de Parroquias</h4>
                </div>
             </div>
             <div class="card-body">
@@ -226,15 +303,19 @@
                     </div>
                 </div>
                 <div class="table-responsive">
-                    <table id="tablabanco" class="table table-striped"   >
+                    <table id="tablaparroquia" class="table table-striped"   >
                  <thead>
                     <tr>
-                       <th >Nombre</th>
+                       <th >Provincia</th>
+                       <th >Cantón</th>
+                       <th >Parroquia</th>
                        <th>Estado</th>
                        <th style="align-content: center">...</th>
                     </tr>
 
                      <tr>
+                        <th class="filtro-columna filtro-provincia"></th>
+                        <th class="filtro-columna filtro-canton"></th>
                         <th class="filtro-columna filtro-nombre"></th>
                         <th class="filtro-columna sin-filtrado"></th>
                         <th class="filtro-columna sin-filtrado"></th>
@@ -251,18 +332,24 @@
       </div>
     </div>
 
-    <div class="modal fade" id="ventanabanco" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal fade" id="ventanaparroquia" aria-labelledby="exampleModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="tituloventana" >Ingresar Banco</h5>
+            <h5 class="modal-title" id="tituloventana" >Ingresar Parroquia</h5>
           </div>
           <div class="modal-body">
              <div class="card-body">
-               <form id="frmingresobanco" method="post">
+               <form id="frmingresoparroquia" method="post">
+
+                     <div class="form-group">
+                        <label class="form-label">Canton</label>
+                        <select id="cmbcanton" name="cmbcanton" class="form-select form-select-lg shadow-none" required>
+                        </select>
+                    </div>
                     <div class="form-group">
                         <label class="form-label" for="nombre">Nombre:</label>
-                        <input type="text" class="form-control" id="txtnombre" autocomplete="off" required >
+                        <input type="text" class="form-control" id="txtnombre" name="txtnombre"  autocomplete="off" required >
                     </div>
                     <div class="form-group">
                         <label class="form-label">Estado</label>
