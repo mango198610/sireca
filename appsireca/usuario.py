@@ -149,7 +149,6 @@ def view(request):
                     for d in registros:
                         htmlAcciones = ''
                         superusuario=''
-                        nombres=str(d.first_name).upper()+ ' '+ str(d.last_name).upper()
                         estado= 'Desactivar Usuario' if d.is_active else 'Activar Usuario'
 
                         htmlAcciones += ' <li><a class="dropdown-item" style="cursor: pointer" onclick="cambiarcontrasena(' + str(

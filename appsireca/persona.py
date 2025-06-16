@@ -2,16 +2,18 @@ import json
 from datetime import datetime
 from django.contrib.admin.models import LogEntry, CHANGE, ADDITION, DELETION
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils.encoding import force_str as force_text
 
-from appsireca.funciones import ip_client_address, MiPaginador
+from appsireca.funciones import ip_client_address, MiPaginador, calculate_username
 from appsireca.models import Persona, Canton, Parroquia, AccesoModulo, Sexo, Nacionalidad, Provincia, Perfil, \
-    TipoIdentificacion
+    TipoIdentificacion, PerfilPersona
 from appsireca.views import addUserData
+from sireca.settings import DEFAULT_PASSWORD
 
 
 @login_required(redirect_field_name='ret', login_url='/login')
@@ -109,7 +111,7 @@ def view(request):
                     persona = Persona.objects.get(pk=int(request.POST['id']))
                     data['persona'] = [
                         {'id': persona.id,
-                         "nombre": str(persona.nombre),"estado": "1" if persona.estado else "2"
+                         "nombre": str(persona.nombres),"estado": "1" if persona.estado else "2"
                          }]
 
                     data['result'] = 'ok'
@@ -206,11 +208,11 @@ def view(request):
                                 ss.remove('')
                             if len(ss) == 1:
                                 listapersona = listapersona.filter(
-                                    nombre__icontains=search).order_by('nombre')
+                                    nombres__icontains=search).order_by('nombre')
                                 filtrado = True
                             else:
                                 listapersona = listapersona.filter(
-                                    Q(nombre__icontains=ss[0]) & Q(
+                                    Q(nombres__icontains=ss[0]) & Q(
                                         nombres__icontains=ss[1])).order_by('nombre')
                                 filtrado = True
 
@@ -222,12 +224,12 @@ def view(request):
                                 ss.remove('')
                             if len(ss) == 1:
                                 listapersona = listapersona.filter(
-                                    nombre__icontains=search).order_by('nombres')
+                                    nombres__icontains=search).order_by('nombres')
                                 filtrado = True
                             else:
                                 listapersona = listapersona.filter(
-                                    Q(nombre__icontains=ss[0]) & Q(
-                                        nombre__icontains=ss[1])).order_by('nombres')
+                                    Q(nombres__icontains=ss[0]) & Q(
+                                        nombres__icontains=ss[1])).order_by('nombres')
                                 filtrado = True
 
                     if request.POST['columns[1][search][value]'] != '':

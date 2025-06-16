@@ -201,3 +201,8 @@ class AccesoModulo(models.Model):
     def __str__(self):
         return str(self.perfilpersona.perfil.nombre) + ' ' + str(
             self.perfilpersona.persona.nombre_completo_inverso()) + ' ' + str(self.modulo.nombre)
+
+
+class Banco(models.Model):
+    nombre = models.CharField(max_length=1000, null=True)
+    estado = models.BooleanField(default=True)

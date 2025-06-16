@@ -1,0 +1,288 @@
+{% extends "basebs.html" %}
+
+{% block heading %}
+
+    <script>
+          $(function () {
+              $(document).ready(function () {
+
+                  var idbanco=0;
+
+                  function buscar(){
+                       location.href = "/banco?acc={{ permisopcion.id }}";
+                  }
+
+
+
+                  var tablabancos=new DataTable('#tablabanco', {
+                   language: {
+                        "lengthMenu": "Mostrar _MENU_ registros",
+                        "zeroRecords": "No existe información",
+                        "info": "Mostrando _PAGE_ de _PAGES_",
+                        "infoEmpty": "Sin datos",
+                        "infoFiltered": "(Filtrando de un total de _MAX_ registros)",
+                        "search": "Buscar",
+                        "paginate": {
+                            "previous": "Anterior",
+                            "next": "Siguiente"
+                        }
+                   },
+                   ajax: {
+                        url: '/banco',
+                        type: 'POST',
+                        data: function (d) {
+                            d.action = 'serverSide';
+                        }
+                    },
+                    columns: [
+                         { data: 'nombre',"orderable": true },
+                         { data: 'estado',"orderable": true },
+                         { data: 'acciones',type: 'html' }
+                    ],
+                    processing: true,
+                    serverSide: true,
+                    fixedHeader: true,
+                    searching: true,
+		            search: true,
+		            info: false,
+                    initComplete: function () {
+                        var table = this.api();
+                        $('#' + 'tablabanco' + '_filter').parent().addClass('d-none');
+                        $('.filtro-columna', table.table().header()).each(function () {
+                            var columnIndex = $(this).index();
+                            if(! $(this).hasClass('sin-filtrado')){
+                                var html = $('<input type="text" class="form-control form-control-sm form-control-filter" placeholder="Filtrar..."/>')
+                                .on('keyup change', function () {
+                                    table.column(columnIndex).search($(this).val()).draw();
+                                });
+
+                                $(this).html(html);
+                            }
+
+                        });
+
+                       table.columns.adjust();
+                    }
+                });
+
+
+                  $("#btnagregar").click(function() {
+                       $("#tituloventana").html("Ingresar Banco");
+                       $("#ventanabanco").modal({backdrop: 'static', keyboard: false});
+                       $("#ventanabanco").modal("show");
+                  });
+
+                  $('#frmingresobanco').on('submit', function(e) {
+                      e.preventDefault();
+                      Loader.open();
+                      var mensapresentacion= idbanco==0 ? 'Se ingreso correctamente' : 'Se actualizo correctamente'
+                      var formData = new FormData();
+                      formData.append('action', 'agregar');
+                      formData.append('nombre', $("#txtnombre").val());
+                      formData.append('estado',  $("#cmbestado").val());
+                      formData.append('id',  idbanco);
+                      $.ajax({
+                         url: '/banco',
+                         type: "POST",
+                         contentType: false,
+                         data: formData,
+                         processData: false,
+                         cache: false,
+                         success: function (data) {
+                             if (data.result == "ok") {
+
+                                 swal("! Banco", mensapresentacion, "success").then((result) => {
+                                         buscar();
+                                  });
+
+                             } else {
+                                 swal("Error", data.message, "error");
+                             }
+                         },
+                         error: function (xhr, ajaxOptions, thrownError) {
+                             swal("Error", "Error Conexion en el Servidor", "error");
+                         },
+                         complete: function(){
+                             Loader.close();
+                         }
+
+                      });
+
+                  });
+
+                  $("#btncancelar").click(function() {
+                     document.getElementById("frmingresobanco").reset();
+                     $("#ventanabanco").modal('hide');
+                  });
+
+
+                  editar=function (idban){
+
+                         $("#tituloventana").html("Actualizar Banco");
+
+                         idbanco=idban;
+                         $.post("/banco", {
+                             "action": "buscardata",
+                              "id":idbanco
+                         }, function (data) {
+
+                             if (data.result == 'ok') {
+
+
+                                 $("#txtnombre").val(data.banco[0].nombre);
+                                 $("#cmbestado").val(parseInt(data.banco[0].estado));
+
+
+                             }else{
+                                  swal("Error", data.message, "error");
+                             }
+
+                         }, 'json').always(function() {
+
+                               $("#ventanabanco").modal({backdrop: 'static', keyboard: false});
+                               $("#ventanabanco").modal("show");
+
+                         });
+                  }
+
+                  eliminarbanco = function (id,nombre) {
+
+                      swal({
+                        title: '¿Está seguro que desea eliminar el banco?',
+                        text: "Banco : "+nombre,
+                        type: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Si,Eliminar!',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonClass: 'btn btn-success me-2',
+                        cancelButtonClass: 'btn btn-danger ',
+                        buttonsStyling: false,
+                        allowOutsideClick: false
+
+                        }).then(function (isConfirm) {
+
+                                if (isConfirm['dismiss']!='cancel' && isConfirm['dismiss']!='esc') {
+
+                                    Loader.open();
+                                    var formData = new FormData();
+                                    formData.append('action', 'eliminar');
+                                    formData.append('id', id);
+
+                                    $.ajax({
+                                        url: '/banco',
+                                        type: "POST",
+                                        contentType: false,
+                                        data: formData,
+                                        processData: false,
+                                        cache: false,
+                                        success: function (data) {
+                                            if (data.result == "ok") {
+                                                swal("! Banco","Se eliminó correctamente", "success").then((result) => {
+                                                 buscar();
+                                                });
+
+                                            } else {
+                                                swal("Error", data.message, "error");
+
+                                            }
+
+                                        }, error: function (xhr, ajaxOptions, thrownError) {
+                                            swal("Error", "Error Conexion en el Servidor", "error");
+
+                                        },
+
+                                        complete: function () {
+                                             Loader.close();
+                                        }
+                                    });
+
+                                }
+                      })
+
+
+                  }
+
+
+
+              });
+          });
+    </script>
+
+{% endblock %}
+
+{% block canvas %}
+
+    <div class="col-sm-12">
+         <div class="card">
+            <div class="card-header d-flex justify-content-between">
+               <div class="header-title">
+                  <h4 class="card-title">Listado de Bancos</h4>
+               </div>
+            </div>
+            <div class="card-body">
+                <div class="row d-flex justify-content-end">
+                    <div class="col-sm-4 col-md-4 col-lg-4">
+                        <button type="button" class="btn btn-primary" id="btnagregar">Agregar</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tablabanco" class="table table-striped"   >
+                 <thead>
+                    <tr>
+                       <th >Nombre</th>
+                       <th ></th>
+                       <th>Estado</th>
+                       <th style="align-content: center">...</th>
+                    </tr>
+
+                     <tr>
+                        <th class="filtro-columna filtro-nombre"></th>
+                        <th class="filtro-columna sin-filtrado"></th>
+                        <th class="filtro-columna sin-filtrado"></th>
+                    </tr>
+
+
+                 </thead>
+                 <tbody>
+                 </tbody>
+              </table>
+                </div>
+            </div>
+         </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="ventanabanco" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="tituloventana" >Ingresar Bnaco</h5>
+          </div>
+          <div class="modal-body">
+             <div class="card-body">
+               <form id="frmingresobanco" method="post">
+                    <div class="form-group">
+                        <label class="form-label" for="nombre">Nombre:</label>
+                        <input type="txtnombre" class="form-control" id="txtnombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Estado</label>
+                        <select id="cmbestado" class="form-select form-select-lg shadow-none">
+                            <option value="1">Activo</option>
+                            <option value="2">Inactivo</option>
+                        </select>
+                    </div>
+                   <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" id="btncancelar">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnguardar">Guardar</button>
+                  </div>
+               </form>
+             </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+
+{% endblock %}
