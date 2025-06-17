@@ -197,6 +197,7 @@
                          $("#tituloventana").html("Actualizar Parroquia");
 
                          idparroquia=idparro;
+                         var txtcanton="";
                          $.post("/parroquia", {
                              "action": "buscardata",
                               "id":idparroquia
@@ -206,15 +207,19 @@
 
                                  $("#txtnombre").val(data.parroquia[0].nombre);
                                  $("#cmbestado").val(parseInt(data.parroquia[0].estado));
+                                 for (var x in data.cantones) {
+                                  txtcanton = txtcanton + '<option  value="' + data.cantones[x].id + '"> ' + data.cantones[x].nombre + '</option>';
+                                 }
 
                              }else{
                                   swal("Error", data.message, "error");
                              }
 
                          }, 'json').always(function(data) {
-
+                               $("#cmbcanton").html(txtcanton);
                                $("#cmbcanton").val(parseInt(data.parroquia[0].canton));
                                $('#cmbcanton').trigger('change.select2');
+
                                $("#ventanaparroquia").modal({backdrop: 'static', keyboard: false});
                                $("#ventanaparroquia").modal("show");
 

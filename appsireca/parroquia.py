@@ -110,6 +110,7 @@ def view(request):
                          "canton": int(parroquia.canton_id),
                          "nombre": str(parroquia.nombre),"estado": "1" if parroquia.estado else "2"
                          }]
+                    data['cantones'] = [{"id": xcanton.id,"nombre":str(xcanton.nombre)} for xcanton in Canton.objects.filter(provincia=parroquia.canton.provincia).order_by("id")]
 
                     data['result'] = 'ok'
                     return HttpResponse(json.dumps(data), content_type="application/json")
