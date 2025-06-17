@@ -67,97 +67,96 @@
                     }
                 });
 
+                $("#cmbcanton").select2({
+                       width: "100%",
+                       dropdownParent: $('#ventanaparroquia'),
+                       ajax: {
+                            type: "POST",
+                            url: "/parroquia",
+                            dataType: 'json',
+                            delay: 250,
+                            data: function (params) {
+                                return {
+                                    q: params.term, // search term
+                                    page: params.page,
+                                    action: "cantones",
+
+                                };
+                            },
+                            processResults: function (data, params) {
+                                // parse the results into the format expected by Select2
+                                // since we are using custom formatting functions we do not need to
+                                // alter the remote JSON data, except to indicate that infinite
+                                // scrolling can be used
+                                params.page = params.page || 1;
+
+                                return {
+                                    results: data.items,
+                                    pagination: {
+                                        more: (params.page * 30) < data.total_count
+                                    }
+                                };
+                            },
+                            cache: true
+                        },
+
+                        minimumInputLength: 2,
+                        templateResult: formatRepo,
+                        templateSelection: formatRepoSelection,
+                        placeholder: "Buscar Cantón",
+                        language: {
+                            inputTooShort: function () {
+                                return 'Ingrese un nombre';
+                            },
+                            searching: function () {
+                                return "Buscando Cantón...";
+                            },
+                            noResults: function () {
+                                return "No se encontró información";
+                            }
+                        }
+                    });
+
+                    function formatRepo(repo) {
+                            if (repo.loading) {
+                                return repo.text;
+                            }
+
+                            var $container = $(
+                                "<div class='select2-result-repository clearfix'>" +
+                                "<div class='select2-result-repository__meta'>" +
+                                "<div class='select2-result-repository__description'></div>" +
+                                "</div>" +
+                                "</div>"
+                            );
+
+                        $container.find(".select2-result-repository__description").text(repo.nombre);
+
+                        return $container;
+                    }
+
+                    function formatRepoSelection(repo) {
+
+                        return repo.nombre || repo.text;
+                    }
+
+
 
                   $("#btnagregar").click(function() {
                        $("#tituloventana").html("Ingresar Parroquia");
-
-                         $("#cmbgrupo").select2({
-                           theme: "classic",
-                           dropdownParent: $('#ventanaparroquia'),
-                           ajax: {
-                                type: "POST",
-                                url: "/parroquia",
-                                dataType: 'json',
-                                delay: 250,
-                                data: function (params) {
-                                    return {
-                                        q: params.term, // search term
-                                        page: params.page,
-                                        action: "grupos",
-
-                                    };
-                                },
-                                processResults: function (data, params) {
-                                    // parse the results into the format expected by Select2
-                                    // since we are using custom formatting functions we do not need to
-                                    // alter the remote JSON data, except to indicate that infinite
-                                    // scrolling can be used
-                                    params.page = params.page || 1;
-
-                                    return {
-                                        results: data.items,
-                                        pagination: {
-                                            more: (params.page * 30) < data.total_count
-                                        }
-                                    };
-                                },
-                                cache: true
-                            },
-
-                            minimumInputLength: 2,
-                            templateResult: formatRepo,
-                            templateSelection: formatRepoSelection,
-                            placeholder: "Buscar Cantón",
-                            language: {
-                                inputTooShort: function () {
-                                    return 'Ingrese un nombre';
-                                },
-                                searching: function () {
-                                    return "Buscando Cantón...";
-                                },
-                                noResults: function () {
-                                    return "No se encontró información";
-                                }
-                            }
-                        });
-
-                        function formatRepo(repo) {
-                                if (repo.loading) {
-                                    return repo.text;
-                                }
-
-                                var $container = $(
-                                    "<div class='select2-result-repository clearfix'>" +
-                                    "<div class='select2-result-repository__meta'>" +
-                                    "<div class='select2-result-repository__description'></div>" +
-                                    "</div>" +
-                                    "</div>"
-                                );
-
-                            $container.find(".select2-result-repository__description").text(repo.nombre);
-
-                            return $container;
-                        }
-
-                        function formatRepoSelection(repo) {
-
-                            return repo.nombre || repo.text;
-                        }
-
 
                        $("#ventanaparroquia").modal({backdrop: 'static', keyboard: false});
                        $("#ventanaparroquia").modal("show");
                   });
 
+
                   $('#frmingresoparroquia').on('submit', function(e) {
                       e.preventDefault();
                       Loader.open();
                       var mensapresentacion= idparroquia==0 ? 'Se ingreso correctamente' : 'Se actualizo correctamente'
-                      var formData = new FormData();
+                      var formData = new FormData(this);
                       formData.append('action', 'agregar');
-                      formData.append('nombre', $("#txtnombre").val());
-                      formData.append('estado',  $("#cmbestado").val());
-                      formData.append('id',  idbanco);
+                      formData.append('id',  idparroquia);
                       $.ajax({
                          url: '/parroquia',
                          type: "POST",
@@ -168,7 +167,7 @@
                          success: function (data) {
                              if (data.result == "ok") {
 
-                                 swal("! Banco", mensapresentacion, "success").then((result) => {
+                                 swal("! Parroquia", mensapresentacion, "success").then((result) => {
                                          buscar();
                                   });
 
@@ -205,24 +204,24 @@
 
                              if (data.result == 'ok') {
 
-
-                                 $("#txtnombre").val(data.banco[0].nombre);
-                                 $("#cmbestado").val(parseInt(data.banco[0].estado));
-
+                                 $("#txtnombre").val(data.parroquia[0].nombre);
+                                 $("#cmbestado").val(parseInt(data.parroquia[0].estado));
 
                              }else{
                                   swal("Error", data.message, "error");
                              }
 
-                         }, 'json').always(function() {
+                         }, 'json').always(function(data) {
 
-                               $("#ventanabanco").modal({backdrop: 'static', keyboard: false});
-                               $("#ventanabanco").modal("show");
+                               $("#cmbcanton").val(parseInt(data.parroquia[0].canton));
+                               $('#cmbcanton').trigger('change.select2');
+                               $("#ventanaparroquia").modal({backdrop: 'static', keyboard: false});
+                               $("#ventanaparroquia").modal("show");
 
                          });
                   }
 
-                  eliminarparroquia = function (id,nombre) {
+                  eliminarParroquia = function (id,nombre) {
 
                       swal({
                         title: '¿Está seguro que desea eliminar la parroquia?',
@@ -340,11 +339,12 @@
           </div>
           <div class="modal-body">
              <div class="card-body">
-               <form id="frmingresoparroquia" method="post">
+               <form id="frmingresoparroquia"  method="post">
 
                      <div class="form-group">
-                        <label class="form-label">Canton</label>
-                        <select id="cmbcanton" name="cmbcanton" class="form-select form-select-lg shadow-none" required>
+                        <label class="form-label">Cantón</label>
+                        <select id="cmbcanton" name="cmbcanton" class="form-select form-select-lg shadow-none" required >
+                             <option value="">Seleccionar el cantón</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -353,7 +353,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Estado</label>
-                        <select id="cmbestado" class="form-select form-select-lg shadow-none">
+                        <select id="cmbestado" name="cmbestado" class="form-select form-select-lg shadow-none">
                             <option value="1">Activo</option>
                             <option value="2">Inactivo</option>
                         </select>

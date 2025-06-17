@@ -7,8 +7,8 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils.encoding import force_str as force_text
-from appsireca.funciones import ip_client_address, buscarcanton
-from appsireca.models import AccesoModulo, Parroquia
+from appsireca.funciones import ip_client_address, buscarcanton, MiPaginador
+from appsireca.models import AccesoModulo, Parroquia, Canton
 from appsireca.views import addUserData
 
 
@@ -20,8 +20,8 @@ def view(request):
             if action == 'agregar':
                 try:
                     data = {'title': ''}
-                    nombre = str(request.POST['nombre']).upper()
-                    if request.POST['estado'] == '1':
+                    nombre = str(request.POST['txtnombre']).upper()
+                    if request.POST['cmbestado'] == '1':
                         estado = True
                     else:
                         estado = False
@@ -29,12 +29,13 @@ def view(request):
                         if Parroquia.objects.filter(nombre__icontains=nombre).exists():
                             return HttpResponse(json.dumps({'result': 'bad', 'message': 'El banco ya se encuentra registrada'}),
                                                 content_type="application/json")
-                        mensaje = 'Nuevo banco'
-                        parroquia = Parroquia(nombre=nombre,estado=estado)
+                        mensaje = 'Nueva parroquia'
+                        parroquia = Parroquia(canton_id=int(request.POST['cmbcanton']),nombre=nombre,estado=estado)
 
                     else:
-                        mensaje = 'Actualizado banco'
+                        mensaje = 'Actualizada parroquia'
                         parroquia = Parroquia.objects.get(id=int(request.POST['id']))
+                        parroquia.canton_id=int(request.POST['cmbcanton'])
                         parroquia.nombre = nombre
                         parroquia.estado = estado
 
@@ -55,12 +56,25 @@ def view(request):
                                         content_type="application/json")
 
 
-            elif action == 'buscarcanton':
+            elif action == 'cantones':
                 try:
                     data = {'title': ''}
-                    data['listacantondatos'] = buscarcanton(0,request.POST['q'].split(' '))
-                    data['result'] = 'ok'
-                    return HttpResponse(json.dumps(data), content_type="application/json")
+                    cantones= buscarcanton(0,request.POST['q'].split(' '))
+
+                    paging = MiPaginador(cantones, 30)
+                    p = 1
+                    try:
+                        if 'page' in request.POST:
+                            p = int(request.POST['page'])
+                        page = paging.page(p)
+                    except:
+                        page = paging.page(p)
+
+                    lista = [{"id": d.id, "nombre": str(d)} for d in
+                             page.object_list]
+
+                    return HttpResponse(json.dumps({'result': 'ok', 'items': lista, 'page': p}),
+                                content_type="application/json")
                 except Exception as e:
                     return HttpResponse(json.dumps({'result': 'bad', 'message': str(e)}),
                                         content_type="application/json")
@@ -91,8 +105,9 @@ def view(request):
                     data = {'title': ''}
 
                     parroquia = Parroquia.objects.get(pk=int(request.POST['id']))
-                    data['banco'] = [
+                    data['parroquia'] = [
                         {'id': parroquia.id,
+                         "canton": int(parroquia.canton_id),
                          "nombre": str(parroquia.nombre),"estado": "1" if parroquia.estado else "2"
                          }]
 
@@ -138,6 +153,38 @@ def view(request):
                                 ss.remove('')
                             if len(ss) == 1:
                                 listaparroquia = listaparroquia.filter(
+                                    canton__provincia__nombre__icontains=search).order_by('nombre')
+                                filtrado = True
+                            else:
+                                listaparroquia = listaparroquia.filter(
+                                    Q(canton__provincia__nombre__icontains=ss[0]) & Q(
+                                        canton__provincia__nombre__icontains=ss[1])).order_by('nombre')
+                                filtrado = True
+
+                    if request.POST['columns[1][search][value]'] != '':
+                        search = request.POST['columns[1][search][value]']
+                        if search:
+                            ss = search.split(' ')
+                            while '' in ss:
+                                ss.remove('')
+                            if len(ss) == 1:
+                                listaparroquia = listaparroquia.filter(
+                                    canton__nombre__icontains=search).order_by('nombre')
+                                filtrado = True
+                            else:
+                                listaparroquia = listaparroquia.filter(
+                                    Q(canton__nombre__icontains=ss[0]) & Q(
+                                        canton__nombre__icontains=ss[1])).order_by('nombre')
+                                filtrado = True
+
+                    if request.POST['columns[2][search][value]'] != '':
+                        search = request.POST['columns[2][search][value]']
+                        if search:
+                            ss = search.split(' ')
+                            while '' in ss:
+                                ss.remove('')
+                            if len(ss) == 1:
+                                listaparroquia = listaparroquia.filter(
                                     nombre__icontains=search).order_by('nombre')
                                 filtrado = True
                             else:
@@ -145,13 +192,6 @@ def view(request):
                                     Q(nombre__icontains=ss[0]) & Q(
                                         nombre__icontains=ss[1])).order_by('nombre')
                                 filtrado = True
-
-                    if request.POST['columns[1][search][value]'] != '':
-                        url = request.POST['columns[1][search][value]']
-                        listaparroquia = listaparroquia.filter(url__icontains=url)
-
-                        filtrado = True
-
 
                     listaparroquia = listaparroquia.order_by('nombre')
                     registros = listaparroquia[start:start + length] if length != -1 else listaparroquia
@@ -163,7 +203,7 @@ def view(request):
                         htmlAcciones += ' <li><a class="dropdown-item" style="cursor: pointer" onclick="editar(' + str(
                             d.id) + ');"><i class="dw dw-edit-2"></i>  Editar</a></li>'
 
-                        htmlAcciones += ' <li><a class="dropdown-item" style="cursor: pointer" onclick="eliminarProvincia(' + str(
+                        htmlAcciones += ' <li><a class="dropdown-item" style="cursor: pointer" onclick="eliminarParroquia(' + str(
                             d.id) + ',\'' + str(
                             d.nombre).upper() + '\');"><i class="dw dw-delete-3"></i>  Eliminar</a></li>'
 

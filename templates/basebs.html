@@ -39,9 +39,9 @@
       
            
       <script src="../sireca/static/assets/js/jquery-3.6.0.min.js"></script>
-  
+
           <!-- Select2 CSS -->
-      <link href="../sireca/static/assets/vendor/select2/dist/css/select2.min.css" rel="stylesheet" />  
+      <link href="../sireca/static/assets/vendor/select2/dist/css/select2.min.css" rel="stylesheet" />
       
       <script src="../sireca/static/assets/vendor/sweetalert2/sweetalert2.all.js"></script>
       
@@ -56,7 +56,54 @@
       
       {% block heading %}
       {% endblock %}
-      
+
+       <style>
+        .select2-container .select2-selection--single {
+                background-color: #fff;
+                border: 1px solid #d9dee3;
+                border-radius: 0.5rem;
+                padding: 0.75rem 1rem;
+                min-height: 48px; /* más alto que el default */
+                font-size: 1rem;
+                box-shadow: none;
+                display: flex;
+                align-items: center;
+            }
+
+            /* Texto seleccionado */
+            .select2-container--default .select2-selection--single .select2-selection__rendered,
+            .select2-container--classic .select2-selection--single .select2-selection__rendered {
+                color: #697a8d;
+                line-height: normal;
+                padding-left: 0;
+            }
+
+            /* Flecha dentro del select */
+            .select2-container--default .select2-selection--single .select2-selection__arrow,
+            .select2-container--classic .select2-selection--single .select2-selection__arrow {
+                height: 100%;
+                top: 0;
+                right: 10px;
+            }
+
+            /* Focus: borde color primario de Hope UI */
+            .select2-container--focus .select2-selection--single {
+                border-color: var(--bs-primary)!important;
+            }
+
+            /* Dropdown */
+            .select2-container .select2-dropdown {
+                border: 1px solid #d9dee3;
+                border-radius: 0.5rem;
+                font-size: 0.95rem;
+            }
+
+
+
+
+
+    </style>
+
        <script>
             
            $(function () {

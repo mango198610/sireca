@@ -49,8 +49,9 @@ class Provincia(models.Model):
 class Canton(models.Model):
     nombre = models.CharField(max_length=100)
     provincia = models.ForeignKey(Provincia, on_delete=models.CASCADE)
+    estado= models.BooleanField(default=True)
 
-    def __unicode__(self):
+    def __str__(self):
          return  self.nombre
 
     class Meta:

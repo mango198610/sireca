@@ -71,29 +71,27 @@ def calculate_username(persona, variant=''):
             return calculate_username(persona, '_'+LETRAS_ABECEDARIO_MIN[User.objects.filter(username=usernamevariant).count()-1])
 
 def buscarcanton(idprovincia, strnombre):
-    listCan = [{"id": 0, "nombre": "Seleccionar el Cantón"}]
 
     try:
-        model = (
-
-            if idprovincia > 0
-                Canton.objects.filter(provincia_id=idprovincia)
+        if idprovincia > 0:
+            model = Canton.objects.filter(provincia_id=idprovincia)
+        else:
+            if isinstance(strnombre, str):
+                strnombre = [word for word in strnombre.strip().split() if word]
             else:
-                while '' in strnombre:
-                    strnombre.remove('')
-                if len(strnombre) == 1:
+                strnombre = [word for word in strnombre if word]
+            if len(strnombre) == 1:
+                model = Canton.objects.filter(nombre__icontains=strnombre[0])
+            elif len(strnombre) > 1:
+                model = Canton.objects.filter(
+                    Q(nombre__icontains=strnombre[0]) & Q(nombre__icontains=strnombre[1])
+                )
+            else:
+                model = Canton.objects.filter()
 
-                    Canton.objects.filter(nombre__icontains=strnombre).order_by('nombre')
-                else:
 
-                    Canton.objects.filter(
-                        Q(nombre__icontains=strnombre[0]) & Q(
-                            nombre__icontains=strnombre[1])).order_by(
-                        'nombre')
-        )
-        for g in model.order_by("nombre"):
-            listCan.append({"id": g.id, "nombre": g.nombre})
-        return listCan
+        return model
+
     except Exception as e:
-        return listCan
+        return None
 
