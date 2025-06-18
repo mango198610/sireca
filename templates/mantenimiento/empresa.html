@@ -1,0 +1,335 @@
+{% extends "basebs.html" %}
+
+{% block heading %}
+
+    <script>
+          $(function () {
+              $(document).ready(function () {
+
+                  var idbanco=0;
+
+                  function buscar(){
+                       location.href = "/banco?acc={{ permisopcion.id }}";
+                  }
+
+
+
+                  var tablaempresa=new DataTable('#tablaempresa', {
+                   language: {
+                        "lengthMenu": "Mostrar _MENU_ registros",
+                        "zeroRecords": "No existe información",
+                        "info": "Mostrando _PAGE_ de _PAGES_",
+                        "infoEmpty": "Sin datos",
+                        "infoFiltered": "(Filtrando de un total de _MAX_ registros)",
+                        "search": "Buscar",
+                        "paginate": {
+                            "previous": "Anterior",
+                            "next": "Siguiente"
+                        }
+                   },
+                   ajax: {
+                        url: '/empresa',
+                        type: 'POST',
+                        data: function (d) {
+                            d.action = 'serverSide';
+                        }
+                    },
+                    columns: [
+                         { data: 'nombre',"orderable": true },
+                         { data: 'estado',"orderable": true },
+                         { data: 'acciones',type: 'html' }
+                    ],
+                    processing: true,
+                    serverSide: true,
+                    fixedHeader: true,
+                    searching: true,
+		            search: true,
+		            info: false,
+                    initComplete: function () {
+                        var table = this.api();
+                        $('#' + 'tablaempresa' + '_filter').parent().addClass('d-none');
+                        $('.filtro-columna', table.table().header()).each(function () {
+                            var columnIndex = $(this).index();
+                            if(! $(this).hasClass('sin-filtrado')){
+                                var html = $('<input type="text" class="form-control form-control-sm form-control-filter" placeholder="Filtrar..."/>')
+                                .on('keyup change', function () {
+                                    table.column(columnIndex).search($(this).val()).draw();
+                                });
+
+                                $(this).html(html);
+                            }
+
+                        });
+
+                       table.columns.adjust();
+                    }
+                });
+
+
+                  $("#btnagregar").click(function() {
+                       $("#tituloventana").html("Ingresar Empresa");
+                       $("#ventanabanco").modal({backdrop: 'static', keyboard: false});
+                       $("#ventanabanco").modal("show");
+                  });
+
+                  $('#frmingresobanco').on('submit', function(e) {
+                      e.preventDefault();
+                      Loader.open();
+                      var mensapresentacion= idbanco==0 ? 'Se ingreso correctamente' : 'Se actualizo correctamente'
+                      var formData = new FormData();
+                      formData.append('action', 'agregar');
+                      formData.append('nombre', $("#txtnombre").val());
+                      formData.append('estado',  $("#cmbestado").val());
+                      formData.append('id',  idbanco);
+                      $.ajax({
+                         url: '/banco',
+                         type: "POST",
+                         contentType: false,
+                         data: formData,
+                         processData: false,
+                         cache: false,
+                         success: function (data) {
+                             if (data.result == "ok") {
+
+                                 swal("! Banco", mensapresentacion, "success").then((result) => {
+                                         buscar();
+                                  });
+
+                             } else {
+                                 swal("Error", data.message, "error");
+                             }
+                         },
+                         error: function (xhr, ajaxOptions, thrownError) {
+                             swal("Error", "Error Conexion en el Servidor", "error");
+                         },
+                         complete: function(){
+                             Loader.close();
+                         }
+
+                      });
+
+                  });
+
+                  $("#btncancelar").click(function() {
+                     document.getElementById("frmingresobanco").reset();
+                     $("#ventanabanco").modal('hide');
+                  });
+
+
+                  editar=function (idban){
+
+                         $("#tituloventana").html("Actualizar Banco");
+
+                         idbanco=idban;
+                         $.post("/banco", {
+                             "action": "buscardata",
+                              "id":idbanco
+                         }, function (data) {
+
+                             if (data.result == 'ok') {
+
+
+                                 $("#txtnombre").val(data.banco[0].nombre);
+                                 $("#cmbestado").val(parseInt(data.banco[0].estado));
+
+
+                             }else{
+                                  swal("Error", data.message, "error");
+                             }
+
+                         }, 'json').always(function() {
+
+                               $("#ventanabanco").modal({backdrop: 'static', keyboard: false});
+                               $("#ventanabanco").modal("show");
+
+                         });
+                  }
+
+                  eliminarbanco = function (id,nombre) {
+
+                      swal({
+                        title: '¿Está seguro que desea eliminar el banco?',
+                        text: "Banco : "+nombre,
+                        type: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Si,Eliminar!',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonClass: 'btn btn-success me-2',
+                        cancelButtonClass: 'btn btn-danger ',
+                        buttonsStyling: false,
+                        allowOutsideClick: false
+
+                        }).then(function (isConfirm) {
+
+                                if (isConfirm['dismiss']!='cancel' && isConfirm['dismiss']!='esc') {
+
+                                    Loader.open();
+                                    var formData = new FormData();
+                                    formData.append('action', 'eliminar');
+                                    formData.append('id', id);
+
+                                    $.ajax({
+                                        url: '/banco',
+                                        type: "POST",
+                                        contentType: false,
+                                        data: formData,
+                                        processData: false,
+                                        cache: false,
+                                        success: function (data) {
+                                            if (data.result == "ok") {
+                                                swal("! Banco","Se eliminó correctamente", "success").then((result) => {
+                                                 buscar();
+                                                });
+
+                                            } else {
+                                                swal("Error", data.message, "error");
+
+                                            }
+
+                                        }, error: function (xhr, ajaxOptions, thrownError) {
+                                            swal("Error", "Error Conexion en el Servidor", "error");
+
+                                        },
+
+                                        complete: function () {
+                                             Loader.close();
+                                        }
+                                    });
+
+                                }
+                      })
+
+
+                  }
+
+
+
+              });
+          });
+    </script>
+
+{% endblock %}
+
+{% block canvas %}
+
+    <div class="col-sm-12">
+         <div class="card">
+            <div class="card-header d-flex justify-content-between">
+               <div class="header-title">
+                  <h4 class="card-title">Listado de Empresas</h4>
+               </div>
+            </div>
+            <div class="card-body">
+                <div class="row d-flex justify-content-end">
+                    <div class="col-sm-4 col-md-4 col-lg-4">
+                        <button type="button" class="btn btn-primary" id="btnagregar">Agregar</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tablaempresa" class="table table-striped"   >
+                 <thead>
+                    <tr>
+                       <th >Nombre</th>
+                       <th>Estado</th>
+                       <th style="align-content: center">...</th>
+                    </tr>
+
+                     <tr>
+                        <th class="filtro-columna filtro-nombre"></th>
+                        <th class="filtro-columna sin-filtrado"></th>
+                        <th class="filtro-columna sin-filtrado"></th>
+                    </tr>
+
+
+                 </thead>
+                 <tbody>
+                 </tbody>
+              </table>
+                </div>
+            </div>
+         </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="ventanaempresa" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="tituloventana" >Ingresar Empresa</h5>
+          </div>
+          <div class="modal-body">
+             <div class="card-body">
+               <form id="frmingresoempresa" method="post">
+                   <div class="row">
+                        <div class="col-sm-6 col-md-6 col-lg-6">
+                            <div class="form-group">
+                                <label class="form-label">Tipo Identificación</label>
+                                <select id="cmbtipoidentificacion" name="cmbtipoidentificacion" required class="form-select mb-3 shadow-none">
+                                     <option value="0">Seleccionar el tipo identificación</option>
+                                     {% for xlistatipoidentifcacion in listatipoidentifcacion %}
+                                               <option value='{{ xlistatipoidentifcacion.id }}'>{{ xlistatipoidentifcacion.nombre }}</option>
+                                     {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-6 col-lg-6">
+                            <div class="form-group">
+                                <label class="form-label">Identificación <a style="color: #d92550">(*)</a> :</label>
+                                <input type="text" class="form-control" id="txtidentificacion" name="txtidentificacion" placeholder="identificación" required>
+                            </div>
+                        </div>
+                   </div>
+                        <div class="form-group col-md-8">
+                            <label class="form-label" for="nombre">Nombre:</label>
+                            <input type="text" class="form-control" id="txtnombre" autocomplete="off" required >
+                        </div>
+                        <div class="form-group col-md-4">
+                               <div class="profile-img-edit position-relative">
+                                  <img src="../../sireca/static/assets/images/avatars/01.png" alt="profile-pic" class="theme-color-default-img profile-pic rounded avatar-100">
+                                  <img src="../../sireca/static/assets/images/avatars/avtar_1.png" alt="profile-pic" class="theme-color-purple-img profile-pic rounded avatar-100">
+                                  <img src="../../sireca/static/assets/images/avatars/avtar_2.png" alt="profile-pic" class="theme-color-blue-img profile-pic rounded avatar-100">
+                                  <img src="../../sireca/static/assets/images/avatars/avtar_4.png" alt="profile-pic" class="theme-color-green-img profile-pic rounded avatar-100">
+                                  <img src="../../sireca/static/assets/images/avatars/avtar_5.png" alt="profile-pic" class="theme-color-yellow-img profile-pic rounded avatar-100">
+                                  <img src="../../sireca/static/assets/images/avatars/avtar_3.png" alt="profile-pic" class="theme-color-pink-img profile-pic rounded avatar-100">
+                                  <div class="upload-icone bg-primary">
+                                     <svg class="upload-button icon-14" width="14"  viewBox="0 0 24 24">
+                                        <path fill="#ffffff" d="M14.06,9L15,9.94L5.92,19H5V18.08L14.06,9M17.66,3C17.41,3 17.15,3.1 16.96,3.29L15.13,5.12L18.88,8.87L20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18.17,3.09 17.92,3 17.66,3M14.06,6.19L3,17.25V21H6.75L17.81,9.94L14.06,6.19Z" />
+                                     </svg>
+                                     <input class="file-upload" type="file" accept="image/*">
+                                  </div>
+                               </div>
+                               <div class="img-extension mt-3">
+                                  <div class="d-inline-block align-items-center">
+                                     <span>Solo</span>
+                                     <a href="javascript:void();">.jpg</a>
+                                     <a href="javascript:void();">.png</a>
+                                     <a href="javascript:void();">.jpeg</a>
+                                  </div>
+                               </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="direccion">Dirección:</label>
+                            <input type="text" class="form-control" id="txtdireccion" autocomplete="off" required >
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Estado</label>
+                            <select id="cmbestado" class="form-select form-select-lg shadow-none">
+                                <option value="1">Activo</option>
+                                <option value="2">Inactivo</option>
+                            </select>
+                        </div>
+                   </div>
+                   <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" id="btncancelar">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnguardar">Guardar</button>
+                  </div>
+               </form>
+             </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+
+{% endblock %}
