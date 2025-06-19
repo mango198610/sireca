@@ -136,3 +136,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LETRAS_ABECEDARIO_MIN = 'abcdfghijklmnopqrstuvwxyz'
 
 DEFAULT_PASSWORD = '123CONDU'
+
+ID_TIPO_IDENTIFICACION_RUC=2

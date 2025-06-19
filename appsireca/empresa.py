@@ -7,8 +7,9 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils.encoding import force_str as force_text
-from appsireca.funciones import ip_client_address
-from appsireca.models import Empresa,AccesoModulo
+from appsireca.funciones import ip_client_address, buscaractividad
+from appsireca.models import Empresa, AccesoModulo, SectorComercial, TipoIdentificacion, ActividadComercial
+from sireca.settings import ID_TIPO_IDENTIFICACION_RUC
 
 from appsireca.views import addUserData
 
@@ -21,17 +22,24 @@ def view(request):
             if action == 'agregar':
                 try:
                     data = {'title': ''}
-                    nombre = str(request.POST['nombre']).upper()
-                    if request.POST['estado'] == '1':
+                    nombre = str(request.POST['txtrazonsocial']).upper()
+                    if int(request.POST['cmbestado']) == 1:
                         estado = True
                     else:
                         estado = False
+
                     if int(request.POST['id'])==0:
-                        if Empresa.objects.filter(nombre__icontains=nombre).exists():
-                            return HttpResponse(json.dumps({'result': 'bad', 'message': 'El Empresa ya se encuentra registrada'}),
+                        if Empresa.objects.filter(identificacion= str(request.POST['txtidentificacion'])).exists():
+                            return HttpResponse(json.dumps({'result': 'bad', 'message': 'La identifación ya se encuentra registrada'}),
                                                 content_type="application/json")
+
+
                         mensaje = 'Nuevo Empresa'
-                        empresa = Empresa(nombre=nombre, estado=estado)
+                        actividad=int(request.POST.get('cmbactividad')) if int(request.POST.get('cmbactividad')) else None
+
+                        empresa = Empresa(tipoidentificacion_id=int(request.POST['cmbtipoidentificacion']),
+                                          identificacion=request.POST['txtidentificacion'],actividad_id=actividad,
+                                          nombre=nombre, direccion=str(request.POST['txtdireccion']).upper() ,estado=estado)
 
                     else:
                         mensaje = 'Actualizado Empresa'
@@ -93,6 +101,18 @@ def view(request):
                                         content_type="application/json")
 
 
+            elif action == 'actividad':
+                try:
+                    data = {'title': ''}
+                    actividad= buscaractividad(int(request.POST['idsector']),None)
+                    lista = [{"id": d.id, "nombre": str(d)} for d in actividad] or [{"id": 0, "nombre": "SIN ACTIVIDAD"}]
+                    return HttpResponse(json.dumps({'result': 'ok', 'listactividad': lista}),
+                                content_type="application/json")
+                except Exception as e:
+                    return HttpResponse(json.dumps({'result': 'bad', 'message': str(e)}),
+                                        content_type="application/json")
+
+
             if action == 'serverSide':
                 try:
                     lista = []
@@ -121,7 +141,13 @@ def view(request):
                                 filtrado = True
 
                     if request.POST['columns[0][search][value]'] != '':
-                        search = request.POST['columns[0][search][value]']
+                        ruc = request.POST['columns[0][search][value]']
+                        listaempresa = listaempresa.filter(
+                            identificacion=ruc).order_by('nombre')
+                        filtrado = True
+
+                    if request.POST['columns[1][search][value]'] != '':
+                        search = request.POST['columns[1][search][value]']
                         if search:
                             ss = search.split(' ')
                             while '' in ss:
@@ -136,10 +162,16 @@ def view(request):
                                         nombre__icontains=ss[1])).order_by('nombre')
                                 filtrado = True
 
-                    if request.POST['columns[1][search][value]'] != '':
-                        url = request.POST['columns[1][search][value]']
-                        listaempresa = listaempresa.filter(url__icontains=url)
+                    if request.POST['columns[3][search][value]'] != '':
+                        sector = request.POST['columns[3][search][value]']
+                        listaempresa = listaempresa.filter(
+                            actividad__sector_id=sector).order_by('nombre')
+                        filtrado = True
 
+                    if request.POST['columns[3][search][value]'] != '':
+                        actividad = request.POST['columns[3][search][value]']
+                        listaempresa = listaempresa.filter(
+                            actividad_id=actividad).order_by('nombre')
                         filtrado = True
 
 
@@ -156,11 +188,18 @@ def view(request):
                         htmlAcciones += ' <li><a class="dropdown-item" style="cursor: pointer" onclick="eliminarEmpresa(' + str(
                             d.id) + ',\'' + str(
                             d.nombre).upper() + '\');"><i class="dw dw-delete-3"></i>  Eliminar</a></li>'
-
+                        if d.estado:
+                            htmlestado = '<span class="badge bg-success fs-6">ACTIVO</span>'
+                        else:
+                            htmlestado = '<span class="badge bg-danger fs-6">INACTIVO</span>'
 
                         lista.append({
+                            'ruc': str(d.identificacion),
                             'nombre': str(d.nombre),
-                            'estado': str("ACTIVO" if d.estado else "INACTIVO"),
+                            'direccion': str(d.direccion),
+                            'sector': str(d.actividad.sector.nombre) if d.actividad else str('SIN SECTOR'),
+                            'actividad': str(d.actividad.nombre) if d.actividad else str('SIN ACTIVIDAD'),
+                            'estado': htmlestado,
                               'acciones': f'''
                                         <div class="dropdown">
                                             <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenu2" data-bs-toggle="dropdown" aria-expanded="false">
@@ -175,13 +214,18 @@ def view(request):
 
                     estado = [{"id": 1, "nombre": "ACTIVO"},
                                      {"id": 2, "nombre": "INACTIVO"}]
+                    sector =[{"id": x.id, "nombre": x.nombre} for x in SectorComercial.objects.filter(estado=True)]
+                    actividad =[{"id":x.id, "nombre": x.nombre} for x in ActividadComercial.objects.filter(estado=True).distinct()]
+
                     respuesta = {
                         'draw': draw,
                         'recordsTotal': registros_total,
                         'recordsFiltered': registros_filtrado,
                         'data': lista,
+                        'filtro-select-sector': list(sector),
+                        'filtro-select-actividad': list(actividad),
                         'filtro-select-estado': list(estado),
-                        'placeholderBusqueda': 'Buscar el nombre del modulo',
+                        'placeholderBusqueda': 'Buscar el nombre ',
                         'result': 'ok',
                         'filtrado': filtrado
                     }
@@ -196,6 +240,9 @@ def view(request):
             data = {'title':'Empresa'}
             addUserData(request, data)
             data['permisopcion'] = AccesoModulo.objects.get(id=int(request.GET['acc']))
+            data['listasector'] = SectorComercial.objects.filter(estado=True)
+            data['listatipoidentifcacion'] = TipoIdentificacion.objects.filter(id=ID_TIPO_IDENTIFICACION_RUC,estado=True)
+            data['listatipoidentifcacionrep'] = TipoIdentificacion.objects.filter(estado=True)
 
             return render(request, "mantenimiento/empresa.html", data)
 

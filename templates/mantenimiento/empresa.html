@@ -6,10 +6,10 @@
           $(function () {
               $(document).ready(function () {
 
-                  var idbanco=0;
+                  var idempre=0;
 
                   function buscar(){
-                       location.href = "/banco?acc={{ permisopcion.id }}";
+                       location.href = "/empresa?acc={{ permisopcion.id }}";
                   }
 
 
@@ -35,8 +35,12 @@
                         }
                     },
                     columns: [
+                         { data: 'ruc',"orderable": true },
                          { data: 'nombre',"orderable": true },
-                         { data: 'estado',"orderable": true },
+                         { data: 'direccion',"orderable": true },
+                         { data: 'sector',"orderable": true },
+                         { data: 'actividad',"orderable": true },
+                         { data: 'estado',type: 'html' },
                          { data: 'acciones',type: 'html' }
                     ],
                     processing: true,
@@ -49,70 +53,179 @@
                         var table = this.api();
                         $('#' + 'tablaempresa' + '_filter').parent().addClass('d-none');
                         $('.filtro-columna', table.table().header()).each(function () {
-                            var columnIndex = $(this).index();
-                            if(! $(this).hasClass('sin-filtrado')){
-                                var html = $('<input type="text" class="form-control form-control-sm form-control-filter" placeholder="Filtrar..."/>')
-                                .on('keyup change', function () {
-                                    table.column(columnIndex).search($(this).val()).draw();
+                            const columnIndex = $(this).index();
+                            const column = table.column(columnIndex);
+
+                            if (!$(this).hasClass('sin-filtrado')) {
+                                // ✅ Filtro tipo SELECT si alguna clase comienza con "filtro-select"
+                                var classes = this.className.split(' ');
+                                var claseFiltro = classes.find(function (clase) {
+                                    return clase.includes('filtro-select');
                                 });
+                                if ([...this.classList].some(c => c.startsWith('filtro-select'))) {
+                                    const select = $('<select class="form-select form-select-sm form-control-filter"><option value="">Todos</option></select>')
+                                        .on('change', function () {
+                                            const val = $.fn.dataTable.util.escapeRegex($(this).val());
+                                            column.search(val, false, false).draw();
+                                        });
 
-                                $(this).html(html);
+                                    var filtro = table.ajax.json()?.[claseFiltro] || [];
+
+                                    select.empty().append('<option value="">Seleccione</option>');
+
+                                    for (var i = 0; i < filtro.length; i++) {
+                                        var f = filtro[i];
+                                        select.append('<option value="' + f.id + '">' + f.nombre + '</option>');
+                                    }
+
+                                    $(this).html(select);
+
+                                    select.select2({
+                                        width: '100%',  // Se adapta al ancho del <th>
+                                        placeholder: "Seleccione",
+                                        allowClear: true
+                                    });
+
+                                } else {
+                                    // Filtro tipo INPUT
+                                    const input = $('<input type="text" class="form-control form-control-sm form-control-filter" placeholder="Filtrar...">')
+                                        .on('keyup change', function () {
+                                            column.search($(this).val()).draw();
+                                        });
+
+                                    $(this).html(input);
+                                }
                             }
-
                         });
 
                        table.columns.adjust();
                     }
+                   });
+
+                function validarCamposDeTab(tabSelector) {
+                        const tab = document.querySelector(tabSelector);
+                        const fields = tab.querySelectorAll('input[required], select[required], textarea[required]');
+                        let valido = true;
+
+                        for (let field of fields) {
+                            const isVisible = field.offsetParent !== null;
+
+                            if (isVisible && (!field.value || field.value === "0")) {
+                                field.classList.add("is-invalid");
+
+                                let feedback = field.parentElement.querySelector('.invalid-feedback');
+                                if (!feedback) {
+                                    feedback = document.createElement('div');
+                                    feedback.className = 'invalid-feedback';
+                                    field.parentElement.appendChild(feedback);
+                                }
+
+                                feedback.textContent = "Este campo es obligatorio.";
+                                feedback.style.display = 'block';
+
+                                setTimeout(() => field.focus(), 300);  // evitar error de no focusable
+                                valido = false;
+                                break;
+                            } else {
+                                field.classList.remove("is-invalid");
+                                const feedback = field.parentElement.querySelector('.invalid-feedback');
+                                if (feedback) {
+                                    feedback.textContent = "";
+                                    feedback.style.display = 'none';
+                                }
+                            }
+                        }
+
+                        return valido;
+                }
+
+                function validarTabsEnOrden(...tabs) {
+                        for (let tabId of tabs) {
+                            const tabLink = document.querySelector(`button[data-bs-target="${tabId}"]`);
+                            if (tabLink) {
+                                const tab = new bootstrap.Tab(tabLink);
+                                tab.show();
+                            } else {
+                                console.warn(`No se encontró tab link para ${tabId}`);
+                             }
+                            if (!validarCamposDeTab(tabId)) {
+                                return false;
+                            }
+                        }
+                        return true;
+                }
+
+                $("#btnagregar").click(function() {
+                       $("#tituloventana").html("Ingresar Empresa");
+                       $("#cmbsector").select2({width: "100%", dropdownParent: $('#ventanaempresa')});
+                       $("#cmbactividad").select2({width: "100%", dropdownParent: $('#ventanaempresa')});
+                       $("#ventanaempresa").modal({backdrop: 'static', keyboard: false});
+                       $("#ventanaempresa").modal("show");
                 });
 
-
-                  $("#btnagregar").click(function() {
-                       $("#tituloventana").html("Ingresar Empresa");
-                       $("#ventanabanco").modal({backdrop: 'static', keyboard: false});
-                       $("#ventanabanco").modal("show");
-                  });
-
-                  $('#frmingresobanco').on('submit', function(e) {
+                $('#frmingresoempresa').on('submit', function(e) {
                       e.preventDefault();
-                      Loader.open();
-                      var mensapresentacion= idbanco==0 ? 'Se ingreso correctamente' : 'Se actualizo correctamente'
-                      var formData = new FormData();
-                      formData.append('action', 'agregar');
-                      formData.append('nombre', $("#txtnombre").val());
-                      formData.append('estado',  $("#cmbestado").val());
-                      formData.append('id',  idbanco);
-                      $.ajax({
-                         url: '/banco',
-                         type: "POST",
-                         contentType: false,
-                         data: formData,
-                         processData: false,
-                         cache: false,
-                         success: function (data) {
-                             if (data.result == "ok") {
+                      if (validarTabsEnOrden('#datosgenerales','#datosrepresentante')) {
+                          Loader.open();
+                          var mensapresentacion= idempre==0 ? 'Se ingreso correctamente' : 'Se actualizo correctamente'
+                          const formData = new FormData(this);
+                          formData.append('action', 'agregar');
+                          formData.append('id',  idempre);
+                          $.ajax({
+                             url: '/empresa',
+                             type: "POST",
+                             contentType: false,
+                             data: formData,
+                             processData: false,
+                             cache: false,
+                             success: function (data) {
+                                 if (data.result == "ok") {
 
-                                 swal("! Banco", mensapresentacion, "success").then((result) => {
-                                         buscar();
-                                  });
+                                     swal("! Empresa", mensapresentacion, "success").then((result) => {
+                                             buscar();
+                                      });
 
-                             } else {
-                                 swal("Error", data.message, "error");
+                                 } else {
+                                     swal("Error", data.message, "error");
+                                 }
+                             },
+                             error: function (xhr, ajaxOptions, thrownError) {
+                                 swal("Error", "Error Conexion en el Servidor", "error");
+                             },
+                             complete: function(){
+                                 Loader.close();
                              }
-                         },
-                         error: function (xhr, ajaxOptions, thrownError) {
-                             swal("Error", "Error Conexion en el Servidor", "error");
-                         },
-                         complete: function(){
-                             Loader.close();
-                         }
-
-                      });
-
+                          });
+                      }
                   });
 
                   $("#btncancelar").click(function() {
-                     document.getElementById("frmingresobanco").reset();
-                     $("#ventanabanco").modal('hide');
+                     document.getElementById("frmingresoempresa").reset();
+                     $("#ventanaempresa").modal('hide');
+                  });
+
+                  $("#cmbsector").change(function () {
+
+                     $.post("/empresa", {
+                         "action": "actividad",
+                         idsector: $("#cmbsector").val()
+                     }, function (data) {
+                         var actividadtxt = '';
+                         if (data.result == 'ok') {
+
+
+                             for (var x in data.listactividad) {
+                                 actividadtxt = actividadtxt + '<option  value="' + data.listactividad[x].id + '"> ' + data.listactividad[x].nombre + '</option>';
+                             }
+                             $("#cmbactividad").html(actividadtxt);
+
+
+                         } else {
+                             $("#cmbactividad").html(actividadtxt);
+
+                         }
+
+                     }, 'json');
                   });
 
 
@@ -120,10 +233,10 @@
 
                          $("#tituloventana").html("Actualizar Banco");
 
-                         idbanco=idban;
+                         idempre=idban;
                          $.post("/banco", {
                              "action": "buscardata",
-                              "id":idbanco
+                              "id":idempre
                          }, function (data) {
 
                              if (data.result == 'ok') {
@@ -145,11 +258,11 @@
                          });
                   }
 
-                  eliminarbanco = function (id,nombre) {
+                  eliminarEmpresa = function (id,nombre) {
 
                       swal({
-                        title: '¿Está seguro que desea eliminar el banco?',
-                        text: "Banco : "+nombre,
+                        title: '¿Está seguro que desea eliminar la empresa?',
+                        text: "Empresa : "+nombre,
                         type: 'warning',
                         showCancelButton: true,
                         confirmButtonText: 'Si,Eliminar!',
@@ -169,7 +282,7 @@
                                     formData.append('id', id);
 
                                     $.ajax({
-                                        url: '/banco',
+                                        url: '/empresa',
                                         type: "POST",
                                         contentType: false,
                                         data: formData,
@@ -177,7 +290,7 @@
                                         cache: false,
                                         success: function (data) {
                                             if (data.result == "ok") {
-                                                swal("! Banco","Se eliminó correctamente", "success").then((result) => {
+                                                swal("! Empresa","Se eliminó correctamente", "success").then((result) => {
                                                  buscar();
                                                 });
 
@@ -229,13 +342,21 @@
                     <table id="tablaempresa" class="table table-striped"   >
                  <thead>
                     <tr>
-                       <th >Nombre</th>
+                       <th>Ruc</th>
+                       <th>Razón Social</th>
+                       <th>Dirección</th>
+                       <th>Sector</th>
+                       <th>Actividad</th>
                        <th>Estado</th>
                        <th style="align-content: center">...</th>
                     </tr>
 
                      <tr>
+                        <th class="filtro-columna filtro-ruc"></th>
                         <th class="filtro-columna filtro-nombre"></th>
+                        <th class="filtro-columna sin-filtrado"></th>
+                        <th class="filtro-columna filtro-select-sector"></th>
+                        <th class="filtro-columna filtro-select-actividad"></th>
                         <th class="filtro-columna sin-filtrado"></th>
                         <th class="filtro-columna sin-filtrado"></th>
                     </tr>
@@ -259,65 +380,182 @@
           </div>
           <div class="modal-body">
              <div class="card-body">
-               <form id="frmingresoempresa" method="post">
-                   <div class="row">
-                        <div class="col-sm-6 col-md-6 col-lg-6">
-                            <div class="form-group">
-                                <label class="form-label">Tipo Identificación</label>
-                                <select id="cmbtipoidentificacion" name="cmbtipoidentificacion" required class="form-select mb-3 shadow-none">
-                                     <option value="0">Seleccionar el tipo identificación</option>
-                                     {% for xlistatipoidentifcacion in listatipoidentifcacion %}
-                                               <option value='{{ xlistatipoidentifcacion.id }}'>{{ xlistatipoidentifcacion.nombre }}</option>
-                                     {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-sm-6 col-md-6 col-lg-6">
-                            <div class="form-group">
-                                <label class="form-label">Identificación <a style="color: #d92550">(*)</a> :</label>
-                                <input type="text" class="form-control" id="txtidentificacion" name="txtidentificacion" placeholder="identificación" required>
-                            </div>
-                        </div>
-                   </div>
-                        <div class="form-group col-md-8">
-                            <label class="form-label" for="nombre">Nombre:</label>
-                            <input type="text" class="form-control" id="txtnombre" autocomplete="off" required >
-                        </div>
-                        <div class="form-group col-md-4">
-                               <div class="profile-img-edit position-relative">
-                                  <img src="../../sireca/static/assets/images/avatars/01.png" alt="profile-pic" class="theme-color-default-img profile-pic rounded avatar-100">
-                                  <img src="../../sireca/static/assets/images/avatars/avtar_1.png" alt="profile-pic" class="theme-color-purple-img profile-pic rounded avatar-100">
-                                  <img src="../../sireca/static/assets/images/avatars/avtar_2.png" alt="profile-pic" class="theme-color-blue-img profile-pic rounded avatar-100">
-                                  <img src="../../sireca/static/assets/images/avatars/avtar_4.png" alt="profile-pic" class="theme-color-green-img profile-pic rounded avatar-100">
-                                  <img src="../../sireca/static/assets/images/avatars/avtar_5.png" alt="profile-pic" class="theme-color-yellow-img profile-pic rounded avatar-100">
-                                  <img src="../../sireca/static/assets/images/avatars/avtar_3.png" alt="profile-pic" class="theme-color-pink-img profile-pic rounded avatar-100">
-                                  <div class="upload-icone bg-primary">
-                                     <svg class="upload-button icon-14" width="14"  viewBox="0 0 24 24">
-                                        <path fill="#ffffff" d="M14.06,9L15,9.94L5.92,19H5V18.08L14.06,9M17.66,3C17.41,3 17.15,3.1 16.96,3.29L15.13,5.12L18.88,8.87L20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18.17,3.09 17.92,3 17.66,3M14.06,6.19L3,17.25V21H6.75L17.81,9.94L14.06,6.19Z" />
-                                     </svg>
-                                     <input class="file-upload" type="file" accept="image/*">
-                                  </div>
+               <form id="frmingresoempresa" novalidate method="post">
+
+                   <ul class="nav nav-tabs" id="myTab" role="tablist">
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="datosgenerales-tab" data-bs-toggle="tab" data-bs-target="#datosgenerales" type="button" role="tab" aria-controls="datosgenerales" aria-selected="true">Datos Generales</button>
+                      </li>
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="datosrepresentante-tab" data-bs-toggle="tab" data-bs-target="#datosrepresentante" type="button" role="tab" aria-controls="datosrepresentante" aria-selected="false">Datos Representante Legal</button>
+                      </li>
+                   </ul>
+                   <div class="tab-content">
+                       <div class="tab-pane active" id="datosgenerales" role="tabpanel" aria-labelledby="datosgenerales-tab">
+                             <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Tipo Identificación</label>
+                                        <select id="cmbtipoidentificacion" name="cmbtipoidentificacion" required class="form-select mb-3 shadow-none">
+                                             {% for xlistatipoidentifcacion in listatipoidentifcacion %}
+                                                       <option value='{{ xlistatipoidentifcacion.id }}'>{{ xlistatipoidentifcacion.nombre }}</option>
+                                             {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-5 col-md-5 col-lg-5">
+                                    <div class="form-group">
+                                        <label class="form-label">Identificación <a style="color: #d92550">(*)</a> :</label>
+                                        <input type="text" class="form-control" id="txtidentificacion" name="txtidentificacion" placeholder="identificación" required>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-md-3 col-lg-3">
+                                    <div class="form-group">
+                                       <div class="profile-img-edit position-relative">
+                                          <img src="../../sireca/static/assets/images/avatars/01.png" alt="profile-pic" class="theme-color-default-img profile-pic rounded avatar-100">
+                                          <img src="../../sireca/static/assets/images/avatars/avtar_1.png" alt="profile-pic" class="theme-color-purple-img profile-pic rounded avatar-100">
+                                          <img src="../../sireca/static/assets/images/avatars/avtar_2.png" alt="profile-pic" class="theme-color-blue-img profile-pic rounded avatar-100">
+                                          <img src="../../sireca/static/assets/images/avatars/avtar_4.png" alt="profile-pic" class="theme-color-green-img profile-pic rounded avatar-100">
+                                          <img src="../../sireca/static/assets/images/avatars/avtar_5.png" alt="profile-pic" class="theme-color-yellow-img profile-pic rounded avatar-100">
+                                          <img src="../../sireca/static/assets/images/avatars/avtar_3.png" alt="profile-pic" class="theme-color-pink-img profile-pic rounded avatar-100">
+                                          <div class="upload-icone bg-primary">
+                                             <svg class="upload-button icon-14" width="14"  viewBox="0 0 24 24">
+                                                <path fill="#ffffff" d="M14.06,9L15,9.94L5.92,19H5V18.08L14.06,9M17.66,3C17.41,3 17.15,3.1 16.96,3.29L15.13,5.12L18.88,8.87L20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18.17,3.09 17.92,3 17.66,3M14.06,6.19L3,17.25V21H6.75L17.81,9.94L14.06,6.19Z" />
+                                             </svg>
+                                             <input class="file-upload" type="file" accept="image/*">
+                                          </div>
+                                       </div>
+                                       <div class="img-extension mt-3">
+                                          <div class="d-inline-block align-items-center">
+                                             <span>Solo</span>
+                                             <a href="javascript:void();">.jpg</a>
+                                             <a href="javascript:void();">.png</a>
+                                             <a href="javascript:void();">.jpeg</a>
+                                          </div>
+                                       </div>
+                                    </div>
+                                </div>
+                             </div>
+                             <div class="row">
+                                   <div class="col-sm-12 col-md-12 col-lg-12">
+                                        <div class="form-group">
+                                            <label class="form-label" for="txtrazonsocial">Razón Social:</label>
+                                            <input type="text" class="form-control" id="txtrazonsocial" name="txtrazonsocial" autocomplete="off" required >
+                                        </div>
+                                   </div>
+                             </div>
+                             <div class="row">
+                                    <div class="col-sm-6 col-md-6 col-lg-6">
+                                       <div class="form-group">
+                                            <label class="form-label">Sector :</label>
+                                            <select id="cmbsector" name="cmbsector" class="form-select mb-3 shadow-none" required>
+                                                <option value="0">SELECCIONAR EL SECTOR</option>
+                                                 {% for xlistasector in listasector %}
+                                                       <option value='{{ xlistasector.id }}'>{{ xlistasector.nombre }}</option>
+                                                 {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6 col-md-6 col-lg-6">
+                                       <div class="form-group">
+                                            <label class="form-label">Actividad  :</label>
+                                            <select id="cmbactividad" name="cmbactividad" required class="form-select mb-3 shadow-none">
+                                                  <option value="0">SELECCIONAR LA ACTIVIDAD</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                </div>
-                               <div class="img-extension mt-3">
-                                  <div class="d-inline-block align-items-center">
-                                     <span>Solo</span>
-                                     <a href="javascript:void();">.jpg</a>
-                                     <a href="javascript:void();">.png</a>
-                                     <a href="javascript:void();">.jpeg</a>
-                                  </div>
+                             <div class="row">
+                                   <div class="col-sm-12 col-md-12 col-lg-12">
+                                       <div class="form-group">
+                                            <label class="form-label" for="direccion">Dirección:</label>
+                                            <input type="text" class="form-control" id="txtdireccion" name="txtdireccion" autocomplete="off" required >
+                                       </div>
+                                   </div>
                                </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="direccion">Dirección:</label>
-                            <input type="text" class="form-control" id="txtdireccion" autocomplete="off" required >
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Estado</label>
-                            <select id="cmbestado" class="form-select form-select-lg shadow-none">
-                                <option value="1">Activo</option>
-                                <option value="2">Inactivo</option>
-                            </select>
-                        </div>
+                             <div class="row">
+                                   <div class="col-sm-12 col-md-12 col-lg-12">
+                                       <div class="form-group">
+                                            <label class="form-label">Estado</label>
+                                            <select id="cmbestado" name="cmbestado" class="form-select form-select-lg shadow-none">
+                                                <option value="1">Activo</option>
+                                                <option value="2">Inactivo</option>
+                                            </select>
+                                       </div>
+                                   </div>
+                               </div>
+                       </div>
+                       <div class="tab-pane" id="datosrepresentante" role="tabpanel" aria-labelledby="datosrepresentante-tab">
+                           <div class="row">
+                                <div class="col-sm-4 col-md-4 col-lg-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Tipo Identificación</label>
+                                        <select id="cmbtipoidentificacionrep" name="cmbtipoidentificacionrep"  required class="form-select mb-3 shadow-none">
+                                             {% for listatipoidentifcacionrep in listatipoidentifcacionrep %}
+                                                       <option value='{{ listatipoidentifcacionrep.id }}'>{{ listatipoidentifcacionrep.nombre }}</option>
+                                             {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-8 col-md-8 col-lg-8">
+                                    <div class="form-group">
+                                        <label class="form-label">Identificación <a style="color: #d92550">(*)</a> :</label>
+                                        <input type="text" class="form-control" id="txtidentificacionrep" name="txtidentificacionrep" placeholder="identificación" required>
+                                    </div>
+                                </div>
+                           </div>
+                            <div class="row">
+                               <div class="col-sm-12 col-md-12 col-lg-12">
+                                    <div class="form-group">
+                                        <label class="form-label" for="txtnombrerep">Nombres:</label>
+                                        <input type="text" class="form-control" id="txtnombrerep" name="txtnombrerep" autocomplete="off"  >
+                                    </div>
+                               </div>
+                            </div>
+                            <div class="row">
+                               <div class="col-sm-6 col-md-6 col-lg-6">
+                                    <div class="form-group">
+                                        <label class="form-label" for="txtapellido1">Apellido Paterno:</label>
+                                        <input type="text" class="form-control" id="txtapellido1" name="txtapellido1" autocomplete="off"  >
+                                    </div>
+                               </div>
+                               <div class="col-sm-6 col-md-6 col-lg-6">
+                                    <div class="form-group">
+                                        <label class="form-label" for="txtapellido2">Apellido Materno:</label>
+                                        <input type="text" class="form-control" id="txtapellido2" name="txtapellido2" autocomplete="off" required >
+                                    </div>
+                               </div>
+                            </div>
+                            <div class="row">
+                               <div class="col-sm-6 col-md-6 col-lg-6">
+                                    <div class="form-group">
+                                        <label class="form-label" for="txttelefconv">Teléfono Convenional:</label>
+                                        <input type="text" class="form-control" id="txttelefconv" name="txttelefconv" autocomplete="off" >
+                                    </div>
+                               </div>
+                               <div class="col-sm-3 col-md-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label" for="txtcelular">Celular:</label>
+                                        <input type="text" class="form-control" id="txtcelular" name="txtcelular" autocomplete="off" >
+                                    </div>
+                               </div>
+                               <div class="col-sm-3 col-md-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label" for="txtcelular2">Otro Celular:</label>
+                                        <input type="text" class="form-control" id="txtcelular2" name="txtcelula2r" autocomplete="off" >
+                                    </div>
+                               </div>
+                            </div>
+                            <div class="row">
+                               <div class="col-sm-12 col-md-12 col-lg-12">
+                                    <div class="form-group">
+                                        <label class="form-label" for="txtcorreo">Correo:</label>
+                                        <input type="email" class="form-control" id="txtcorreo" name="txtcorreo" autocomplete="off" >
+                                    </div>
+                               </div>
+                            </div>
+
+                       </div>
                    </div>
                    <div class="modal-footer">
                     <button type="button" class="btn btn-danger" id="btncancelar">Cancelar</button>

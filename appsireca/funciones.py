@@ -6,7 +6,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import HttpResponse
 
-from appsireca.models import Canton
+from appsireca.models import Canton, ActividadComercial
 from sireca.settings import LETRAS_ABECEDARIO_MIN
 
 
@@ -88,10 +88,29 @@ def buscarcanton(idprovincia, strnombre):
                 )
             else:
                 model = Canton.objects.filter()
-
-
         return model
+    except Exception as e:
+        return None
 
+def buscaractividad(idsector, strnombre):
+
+    try:
+        if idsector > 0:
+            model = ActividadComercial.objects.filter(sector_id=idsector)
+        else:
+            if isinstance(strnombre, str):
+                strnombre = [word for word in strnombre.strip().split() if word]
+            else:
+                strnombre = [word for word in strnombre if word]
+            if len(strnombre) == 1:
+                model = ActividadComercial.objects.filter(nombre__icontains=strnombre[0])
+            elif len(strnombre) > 1:
+                model = ActividadComercial.objects.filter(
+                    Q(nombre__icontains=strnombre[0]) & Q(nombre__icontains=strnombre[1])
+                )
+            else:
+                model = ActividadComercial.objects.filter()
+        return model.filter(estado=True)
     except Exception as e:
         return None
 

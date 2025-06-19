@@ -3,8 +3,8 @@ from django.contrib.auth.models import User
 from django.db import models
 
 class Perfil (models.Model):
-    nombre= models.CharField(max_length=200)
-    icono = models.CharField(max_length=200,null=True)
+    nombre= models.CharField(max_length=200,blank=True, null=True)
+    icono = models.CharField(max_length=200,blank=True, null=True)
     estado=models.BooleanField(default=True)
     pertenece=models.IntegerField(default=0)
     nivel = models.IntegerField(default=0)
@@ -27,15 +27,15 @@ class Modulo(models.Model):
 
 
 class ModuloPerfil(models.Model):
-    perfil = models.ForeignKey(Perfil, on_delete=models.CASCADE)
-    modulo = models.ForeignKey(Modulo, on_delete=models.CASCADE)
+    perfil = models.ForeignKey(Perfil, blank=True, null=True, on_delete=models.CASCADE)
+    modulo = models.ForeignKey(Modulo, blank=True, null=True,on_delete=models.CASCADE)
 
     def __str__(self):
         return str(self.perfil) + ' ' + str(self.modulo)
 
 
 class Provincia(models.Model):
-    nombre = models.CharField(max_length=100)
+    nombre = models.CharField(max_length=100,blank=True, null=True)
     estado = models.BooleanField(default=True)
 
     def __str__(self):
@@ -47,8 +47,8 @@ class Provincia(models.Model):
         ordering = ['nombre']
 
 class Canton(models.Model):
-    nombre = models.CharField(max_length=100)
-    provincia = models.ForeignKey(Provincia, on_delete=models.CASCADE)
+    nombre = models.CharField(max_length=100,blank=True, null=True)
+    provincia = models.ForeignKey(Provincia, blank=True, null=True,on_delete=models.CASCADE)
     estado= models.BooleanField(default=True)
 
     def __str__(self):
@@ -61,7 +61,7 @@ class Canton(models.Model):
 
 
 class Sexo(models.Model):
-    nombre = models.CharField(max_length=100)
+    nombre = models.CharField(max_length=100,blank=True, null=True)
     codigodatabooks=models.IntegerField(null=True, blank=True)
 
     def __str__(self):
@@ -78,8 +78,8 @@ class Sexo(models.Model):
 
 
 class Parroquia(models.Model):
-    nombre = models.CharField(max_length=500)
-    canton = models.ForeignKey(Canton, on_delete=models.CASCADE)
+    nombre = models.CharField(max_length=500,blank=True, null=True)
+    canton = models.ForeignKey(Canton, blank=True, null=True,on_delete=models.CASCADE)
     estado = models.BooleanField(default=True)
 
     def __str__(self):
@@ -96,7 +96,7 @@ class Parroquia(models.Model):
 
 
 class Pais(models.Model):
-    nombre = models.CharField(max_length=100)
+    nombre = models.CharField(max_length=100,blank=True, null=True)
 
     def __str__(self):
         return self.nombre
@@ -116,7 +116,7 @@ class Pais(models.Model):
         super(Pais, self).save(force_insert, force_update, using)
 
 class Nacionalidad(models.Model):
-    nombre = models.CharField(max_length=100)
+    nombre = models.CharField(max_length=100,blank=True, null=True)
     estado = models.BooleanField(default=True)
 
     def __str__(self):
@@ -130,6 +130,23 @@ class Nacionalidad(models.Model):
     def save(self, force_insert=False, force_update=False, using=None):
         self.nombre = self.nombre.upper()
         super(Nacionalidad, self).save(force_insert, force_update, using)
+
+
+class SectorComercial(models.Model):
+    nombre = models.CharField(max_length=1000, blank=True, null=True)
+    estado = models.BooleanField(default=True)
+
+    def __str__(self):
+        return str(self.nombre)
+
+class ActividadComercial(models.Model):
+    nombre = models.CharField(max_length=1000, blank=True, null=True)
+    sector = models.ForeignKey(SectorComercial,blank=True, null=True, on_delete=models.CASCADE)
+    estado = models.BooleanField(default=True)
+
+    def __str__(self):
+        return str(self.nombre)
+
 
 
 class TipoIdentificacion(models.Model):
@@ -192,8 +209,8 @@ class PerfilPersona(models.Model):
 
 
 class AccesoModulo(models.Model):
-    perfilpersona = models.ForeignKey(PerfilPersona, on_delete=models.CASCADE)
-    modulo = models.ForeignKey(Modulo, on_delete=models.CASCADE)
+    perfilpersona = models.ForeignKey(PerfilPersona, blank=True, null=True ,on_delete=models.CASCADE)
+    modulo = models.ForeignKey(Modulo, blank=True, null=True ,on_delete=models.CASCADE)
     ingresar = models.BooleanField(default=True)
     editar = models.BooleanField(default=True)
     ver = models.BooleanField(default=True)
@@ -206,7 +223,7 @@ class AccesoModulo(models.Model):
 
 
 class Banco(models.Model):
-    nombre = models.CharField(max_length=1000, null=True)
+    nombre = models.CharField(max_length=1000, blank=True, null=True)
     estado = models.BooleanField(default=True)
 
     def __str__(self):
@@ -214,6 +231,7 @@ class Banco(models.Model):
 
 class Empresa(models.Model):
     tipoidentificacion = models.ForeignKey(TipoIdentificacion, blank=True, null=True, on_delete=models.CASCADE)
+    actividad = models.ForeignKey(ActividadComercial, blank=True, null=True, on_delete=models.CASCADE)
     identificacion = models.CharField(max_length=13, blank=True, null=True)
     nombre = models.CharField(max_length=1000, null=True)
     direccion = models.CharField(max_length=2000, null=True)
@@ -233,4 +251,6 @@ class RepresentanteEmpresa(models.Model):
     imagen=models.FileField(upload_to="empresas_representante_foto/", blank=True, null=True)
     empresa = models.ForeignKey(Empresa, blank=True, null=True, on_delete=models.CASCADE)
     estado = models.BooleanField(default=True)
+
+
 
