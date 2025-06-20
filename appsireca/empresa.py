@@ -89,9 +89,15 @@ def view(request):
                     data = {'title': ''}
 
                     empresa = Empresa.objects.get(pk=int(request.POST['id']))
-                    data['Empresa'] = [
+                    modelactiv= ActividadComercial.objects.filter(sector=empresa.actividad.sector) if empresa.actividad.sector else []
+                    data['empresa'] = [
                         {'id': empresa.id,
-                         "nombre": str(empresa.nombre),"estado": "1" if empresa.estado else "2"
+                         "tipoidentificacion": empresa.tipoidentificacion.id,
+                         "identificacion":empresa.identificacion,
+                         "nombre": str(empresa.nombre),"estado": "1" if empresa.estado else "2",
+                         "direccion": str(empresa.direccion),"sector":getattr(getattr(empresa.actividad, 'sector', None), 'id', 0),
+                         "actividad":  getattr(empresa.actividad, 'id', 0),
+                         "listactividad":[{"id":x.id,"nombre":x.nombre} for x in modelactiv],
                          }]
 
                     data['result'] = 'ok'
@@ -168,8 +174,8 @@ def view(request):
                             actividad__sector_id=sector).order_by('nombre')
                         filtrado = True
 
-                    if request.POST['columns[3][search][value]'] != '':
-                        actividad = request.POST['columns[3][search][value]']
+                    if request.POST['columns[4][search][value]'] != '':
+                        actividad = request.POST['columns[4][search][value]']
                         listaempresa = listaempresa.filter(
                             actividad_id=actividad).order_by('nombre')
                         filtrado = True
@@ -215,7 +221,9 @@ def view(request):
                     estado = [{"id": 1, "nombre": "ACTIVO"},
                                      {"id": 2, "nombre": "INACTIVO"}]
                     sector =[{"id": x.id, "nombre": x.nombre} for x in SectorComercial.objects.filter(estado=True)]
-                    actividad =[{"id":x.id, "nombre": x.nombre} for x in ActividadComercial.objects.filter(estado=True).distinct()]
+                    actividad=[]
+                    if request.POST['columns[3][search][value]'] != '':
+                        actividad =[{"id":x.id, "nombre": x.nombre} for x in ActividadComercial.objects.filter(sector_id=int(request.POST['columns[3][search][value]']),estado=True).distinct()]
 
                     respuesta = {
                         'draw': draw,

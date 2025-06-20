@@ -2,6 +2,8 @@
 
 {% block heading %}
 
+
+
     <script>
           $(function () {
               $(document).ready(function () {
@@ -12,7 +14,8 @@
                        location.href = "/empresa?acc={{ permisopcion.id }}";
                   }
 
-
+                  $("#cmbsector").select2({width: "100%", dropdownParent: $('#ventanaempresa')});
+                  $("#cmbactividad").select2({width: "100%", dropdownParent: $('#ventanaempresa')});
 
                   var tablaempresa=new DataTable('#tablaempresa', {
                    language: {
@@ -57,7 +60,7 @@
                             const column = table.column(columnIndex);
 
                             if (!$(this).hasClass('sin-filtrado')) {
-                                // ✅ Filtro tipo SELECT si alguna clase comienza con "filtro-select"
+                                // Filtro tipo SELECT si alguna clase comienza con "filtro-select"
                                 var classes = this.className.split(' ');
                                 var claseFiltro = classes.find(function (clase) {
                                     return clase.includes('filtro-select');
@@ -69,13 +72,13 @@
                                             column.search(val, false, false).draw();
                                         });
 
-                                    var filtro = table.ajax.json()?.[claseFiltro] || [];
+                                    const json = table.ajax.json();
+                                    const opciones = json?.[claseFiltro] || [];
+
 
                                     select.empty().append('<option value="">Seleccione</option>');
-
-                                    for (var i = 0; i < filtro.length; i++) {
-                                        var f = filtro[i];
-                                        select.append('<option value="' + f.id + '">' + f.nombre + '</option>');
+                                    for (const opt of opciones) {
+                                        select.append(`<option value="${opt.id}">${opt.nombre}</option>`);
                                     }
 
                                     $(this).html(select);
@@ -101,6 +104,46 @@
                        table.columns.adjust();
                     }
                    });
+
+
+                  const filtroActividad = function () {
+                        const val = $.fn.dataTable.util.escapeRegex($(this).val());
+                        const columnActividad = $('#tablaempresa').DataTable().column(4);  // Ajusta índice si es necesario
+                        columnActividad.search(val, false, false).draw();
+                  }
+
+                  function asignarEventosDependientes() {
+                        let sectorSelect = $('.filtro-select-sector select');
+                        let actividadSelect = $('.filtro-select-actividad select');
+                        sectorSelect.off('change.cargar').on('change.cargar', function () {
+                            const val = $(this).val();
+                            actividadSelect.off('change');
+                            actividadSelect.prop('disabled', true)
+                                .html('<option value="">Cargando...</option>')
+                                .trigger('change.select2');
+
+                            $.post('/empresa', { action: 'actividad', idsector: val }, function (data) {
+                                actividadSelect.empty().append('<option value="">Seleccione</option>');
+                                for (let act of data.listactividad) {
+                                    actividadSelect.append(`<option value="${act.id}">${act.nombre}</option>`);
+                                }
+                                if (actividadSelect.hasClass("select2-hidden-accessible")) {
+                                    actividadSelect.select2('destroy');
+                                }
+                                actividadSelect.select2({
+                                    width: '100%',
+                                    placeholder: "Seleccione",
+                                    allowClear: true
+                                });
+                                actividadSelect.prop('disabled', false);
+                                actividadSelect.on('change', filtroActividad);
+                            });
+                        });
+                  }
+
+                 tablaempresa.on('xhr.dt', function () {
+                    asignarEventosDependientes();
+                 });
 
                 function validarCamposDeTab(tabSelector) {
                         const tab = document.querySelector(tabSelector);
@@ -157,8 +200,6 @@
 
                 $("#btnagregar").click(function() {
                        $("#tituloventana").html("Ingresar Empresa");
-                       $("#cmbsector").select2({width: "100%", dropdownParent: $('#ventanaempresa')});
-                       $("#cmbactividad").select2({width: "100%", dropdownParent: $('#ventanaempresa')});
                        $("#ventanaempresa").modal({backdrop: 'static', keyboard: false});
                        $("#ventanaempresa").modal("show");
                 });
@@ -229,31 +270,41 @@
                   });
 
 
-                  editar=function (idban){
-
-                         $("#tituloventana").html("Actualizar Banco");
-
-                         idempre=idban;
-                         $.post("/banco", {
+                  editar=function (idempr){
+                         Loader.open();
+                         $("#tituloventana").html("Actualizar Empresa");
+                         idempre=idempr;
+                         $.post("/empresa", {
                              "action": "buscardata",
                               "id":idempre
                          }, function (data) {
 
                              if (data.result == 'ok') {
 
+                                 var activitxt='';
+                                 $("#txtidentificacion").val(data.empresa[0].identificacion);
+                                 $("#txtrazonsocial").val(data.empresa[0].nombre);
+                                 $("#cmbestado").val(parseInt(data.empresa[0].estado));
+                                 $("#cmbsector").val(parseInt(data.empresa[0].sector));
+                                 $('#cmbsector').trigger('change.select2');
+                                 $("#txtdireccion").val(data.empresa[0].direccion);
 
-                                 $("#txtnombre").val(data.banco[0].nombre);
-                                 $("#cmbestado").val(parseInt(data.banco[0].estado));
+                                 for (var x in data.empresa[0].listactividad) {
+                                     activitxt = activitxt + '<option  value="' + data.empresa[0].listactividad[x].id + '"> ' + data.empresa[0].listactividad[x].nombre + '</option>';
+                                 }
+                                 $("#cmbactividad").html(activitxt);
 
 
                              }else{
                                   swal("Error", data.message, "error");
                              }
 
-                         }, 'json').always(function() {
-
-                               $("#ventanabanco").modal({backdrop: 'static', keyboard: false});
-                               $("#ventanabanco").modal("show");
+                         }, 'json').always(function(data) {
+                               $("#cmbactividad").val(parseInt(data.empresa[0].actividad));
+                               $('#cmbactividad').trigger('change.select2');
+                               $("#ventanaempresa").modal({backdrop: 'static', keyboard: false});
+                               $("#ventanaempresa").modal("show");
+                               Loader.close()
 
                          });
                   }
@@ -314,6 +365,22 @@
 
 
                   }
+
+                  const fileInput = document.getElementById('imglogo');
+                  fileInput.addEventListener('change', function() {
+                        const file = this.files[0];
+                        if (file && file.type.startsWith('image/')) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                preview.src = e.target.result;
+                                preview.style.display = 'block';
+                            };
+                            reader.readAsDataURL(file);
+                        } else {
+                            preview.style.display = 'none';
+                            preview.src = '';
+                        }
+                  });
 
 
 
@@ -418,19 +485,19 @@
                                           <img src="../../sireca/static/assets/images/avatars/avtar_4.png" alt="profile-pic" class="theme-color-green-img profile-pic rounded avatar-100">
                                           <img src="../../sireca/static/assets/images/avatars/avtar_5.png" alt="profile-pic" class="theme-color-yellow-img profile-pic rounded avatar-100">
                                           <img src="../../sireca/static/assets/images/avatars/avtar_3.png" alt="profile-pic" class="theme-color-pink-img profile-pic rounded avatar-100">
-                                          <div class="upload-icone bg-primary">
+                                          <label for="imglogo" class="upload-icone bg-primary" style="cursor:pointer">
                                              <svg class="upload-button icon-14" width="14"  viewBox="0 0 24 24">
                                                 <path fill="#ffffff" d="M14.06,9L15,9.94L5.92,19H5V18.08L14.06,9M17.66,3C17.41,3 17.15,3.1 16.96,3.29L15.13,5.12L18.88,8.87L20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18.17,3.09 17.92,3 17.66,3M14.06,6.19L3,17.25V21H6.75L17.81,9.94L14.06,6.19Z" />
                                              </svg>
-                                             <input class="file-upload" type="file" accept="image/*">
-                                          </div>
+                                             <input class="file-upload" type="file" id="imglogo" accept=".jpg,.jpeg,.png"  >
+                                          </label>
                                        </div>
                                        <div class="img-extension mt-3">
                                           <div class="d-inline-block align-items-center">
                                              <span>Solo</span>
-                                             <a href="javascript:void();">.jpg</a>
-                                             <a href="javascript:void();">.png</a>
-                                             <a href="javascript:void();">.jpeg</a>
+                                             <a href="#">.jpg</a>
+                                             <a href="#">.png</a>
+                                             <a href="#">.jpeg</a>
                                           </div>
                                        </div>
                                     </div>
