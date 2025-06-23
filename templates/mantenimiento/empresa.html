@@ -1,14 +1,16 @@
 {% extends "basebs.html" %}
 
 {% block heading %}
-
-
-
     <script>
           $(function () {
               $(document).ready(function () {
 
                   var idempre=0;
+                  const inputFile = document.getElementById('imglogo');
+                  const btnQuitar = document.getElementById('btn-quitar-img');
+                  const previewImg = document.getElementById('preview');
+                  const imagenPorDefecto = "../../sireca/static/assets/images/avatars/01.png";
+                  const nombreArchivoValido = /^[a-zA-Z0-9_.\-]+$/;
 
                   function buscar(){
                        location.href = "/empresa?acc={{ permisopcion.id }}";
@@ -366,21 +368,55 @@
 
                   }
 
-                  const fileInput = document.getElementById('imglogo');
-                  fileInput.addEventListener('change', function() {
-                        const file = this.files[0];
-                        if (file && file.type.startsWith('image/')) {
-                            const reader = new FileReader();
-                            reader.onload = function(e) {
-                                preview.src = e.target.result;
-                                preview.style.display = 'block';
-                            };
-                            reader.readAsDataURL(file);
-                        } else {
-                            preview.style.display = 'none';
-                            preview.src = '';
+                  document.getElementById('imglogo').addEventListener('change', function (event) {
+                        const file = event.target.files[0];
+
+                        if (file.size === 0) {
+                            swal("Error", "El archivo está vacío.", "error");
+                            inputFile.value = '';
+                            return;
                         }
-                  });
+
+                         const nombre = file.name;
+                         if (!nombreArchivoValido.test(nombre)) {
+                            swal("Error", "El nombre del archivo no debe contener tildes ni caracteres especiales.", "error");
+                            inputFile.value = '';
+                            return;
+                         }
+
+                         if (file.size > 4 * 1024 * 1024) {
+                              swal("Error", "La imagen no debe superar los 2MB.", "error");
+                              inputFile.value = '';
+                              return;
+                         }
+
+                        if (file && file.type.startsWith('image/')) {
+                          const reader = new FileReader();
+                          reader.onload = function (e) {
+                            previewImg.src = e.target.result;
+                            // Oculta los temas
+                            document.querySelectorAll('.profile-img-edit img:not(#preview)').forEach(img => img.style.display = 'none');
+                            // Mostrar el botón para quitar imagen
+                            btnQuitar.style.display = 'inline-block';
+                          };
+                          reader.readAsDataURL(file);
+                        } else {
+                          swal("Error", "Solo se permiten imágenes en formato .jpg, .jpeg o .png", "error");
+                          inputFile.value = '';
+                          return;
+                        }
+
+                });
+
+                // Acción al quitar imagen
+                btnQuitar.addEventListener('click', function () {
+                    inputFile.value = ''; // borra el archivo seleccionado
+                    previewImg.src = imagenPorDefecto;
+                    // Mostrar los temas si quieres restaurarlos (opcional)
+                    document.querySelectorAll('.profile-img-edit img:not(#preview)').forEach(img => img.style.display = 'inline-block');
+                    // Oculta el botón de quitar
+                    btnQuitar.style.display = 'none';
+                });
 
 
 
@@ -479,18 +515,29 @@
                                 <div class="col-sm-3 col-md-3 col-lg-3">
                                     <div class="form-group">
                                        <div class="profile-img-edit position-relative">
-                                          <img src="../../sireca/static/assets/images/avatars/01.png" alt="profile-pic" class="theme-color-default-img profile-pic rounded avatar-100">
-                                          <img src="../../sireca/static/assets/images/avatars/avtar_1.png" alt="profile-pic" class="theme-color-purple-img profile-pic rounded avatar-100">
-                                          <img src="../../sireca/static/assets/images/avatars/avtar_2.png" alt="profile-pic" class="theme-color-blue-img profile-pic rounded avatar-100">
-                                          <img src="../../sireca/static/assets/images/avatars/avtar_4.png" alt="profile-pic" class="theme-color-green-img profile-pic rounded avatar-100">
-                                          <img src="../../sireca/static/assets/images/avatars/avtar_5.png" alt="profile-pic" class="theme-color-yellow-img profile-pic rounded avatar-100">
-                                          <img src="../../sireca/static/assets/images/avatars/avtar_3.png" alt="profile-pic" class="theme-color-pink-img profile-pic rounded avatar-100">
+                                          <img id="preview" src="../../sireca/static/assets/images/avatars/01.png" alt="profile-pic" class="theme-color-default-img profile-pic rounded avatar-100">
+                                          <img id="preview" src="../../sireca/static/assets/images/avatars/avtar_1.png" alt="profile-pic" class="theme-color-purple-img profile-pic rounded avatar-100">
+                                          <img id="preview" src="../../sireca/static/assets/images/avatars/avtar_2.png" alt="profile-pic" class="theme-color-blue-img profile-pic rounded avatar-100">
+                                          <img id="preview" src="../../sireca/static/assets/images/avatars/avtar_4.png" alt="profile-pic" class="theme-color-green-img profile-pic rounded avatar-100">
+                                          <img id="preview" src="../../sireca/static/assets/images/avatars/avtar_5.png" alt="profile-pic" class="theme-color-yellow-img profile-pic rounded avatar-100">
+                                          <img id="preview" src="../../sireca/static/assets/images/avatars/avtar_3.png" alt="profile-pic" class="theme-color-pink-img profile-pic rounded avatar-100">
                                           <label for="imglogo" class="upload-icone bg-primary" style="cursor:pointer">
                                              <svg class="upload-button icon-14" width="14"  viewBox="0 0 24 24">
                                                 <path fill="#ffffff" d="M14.06,9L15,9.94L5.92,19H5V18.08L14.06,9M17.66,3C17.41,3 17.15,3.1 16.96,3.29L15.13,5.12L18.88,8.87L20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18.17,3.09 17.92,3 17.66,3M14.06,6.19L3,17.25V21H6.75L17.81,9.94L14.06,6.19Z" />
                                              </svg>
+                                              <svg class="upload-button icon-14" width="14" viewBox="0 0 24 24">
+                                                    <path fill="#ffffff" d="M19,13H5V11H19V13Z" /> <!-- ícono de "menos" / quitar -->
+                                              </svg>
                                              <input class="file-upload" type="file" id="imglogo" accept=".jpg,.jpeg,.png"  >
                                           </label>
+                                          <button type="button" id="btn-quitar-img"
+                                              class="upload-icone bg-danger position-absolute top-0 end-0 rounded-circle"
+                                              style="display: none; border: none; z-index: 2; transform: scale(0.8);">
+                                              <svg class="upload-button icon-14" width="14" viewBox="0 0 24 24">
+                                                <path fill="#ffffff" d="M19,13H5V11H19V13Z" />
+                                              </svg>
+                                          </button>
+
                                        </div>
                                        <div class="img-extension mt-3">
                                           <div class="d-inline-block align-items-center">

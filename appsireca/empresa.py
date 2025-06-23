@@ -8,7 +8,8 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils.encoding import force_str as force_text
 from appsireca.funciones import ip_client_address, buscaractividad
-from appsireca.models import Empresa, AccesoModulo, SectorComercial, TipoIdentificacion, ActividadComercial
+from appsireca.models import Empresa, AccesoModulo, SectorComercial, TipoIdentificacion, ActividadComercial, \
+    RepresentanteEmpresa
 from sireca.settings import ID_TIPO_IDENTIFICACION_RUC
 
 from appsireca.views import addUserData
@@ -40,6 +41,23 @@ def view(request):
                         empresa = Empresa(tipoidentificacion_id=int(request.POST['cmbtipoidentificacion']),
                                           identificacion=request.POST['txtidentificacion'],actividad_id=actividad,
                                           nombre=nombre, direccion=str(request.POST['txtdireccion']).upper() ,estado=estado)
+
+                        # Guardar el representante legal
+
+                        tipoidentificacion = models.ForeignKey(TipoIdentificacion, blank=True, null=True,
+                                                               on_delete=models.CASCADE)
+                        identificacion = models.CharField(max_length=13, blank=True, null=True)
+                        nombre = models.CharField(max_length=500, null=True)
+                        apellido1 = models.CharField(max_length=200, null=True)
+                        apellido2 = models.CharField(max_length=200, null=True)
+                        direccion = models.CharField(max_length=2000, null=True)
+                        imagen = models.FileField(upload_to="empresas_representante_foto/", blank=True, null=True)
+                        empresa = models.ForeignKey(Empresa, blank=True, null=True, on_delete=models.CASCADE)
+                        estado = models.BooleanField(default=True)
+
+                        representantelegal=RepresentanteEmpresa(tipoidentificacion_id=int(request.POST['cmbtipoidentificacionrep']) if int(request.POST['cmbtipoidentificacion'])>0 else None,
+                                                                identificacion=request.POST['txtidentificacionrep'],nombre=str(request.POST['txtnombrerep']),
+                                                                apellido1=str(request.POST['txtapellido1']),apellido2=str(request.POST['txtapellido2']),tele)
 
                     else:
                         mensaje = 'Actualizado Empresa'
