@@ -3,7 +3,6 @@ import json
 from django.contrib.admin.models import LogEntry, ADDITION, DELETION
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
-from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -12,11 +11,12 @@ from appsireca.funciones import ip_client_address, buscaractividad
 from appsireca.models import Empresa, AccesoModulo, SectorComercial, TipoIdentificacion, ActividadComercial, \
     RepresentanteEmpresa
 from sireca.settings import ID_TIPO_IDENTIFICACION_RUC
-
+from django.db import transaction
 from appsireca.views import addUserData
 
 
 @login_required(redirect_field_name='ret', login_url='/login')
+
 def view(request):
     try:
         if request.method == 'POST':
@@ -215,7 +215,13 @@ def view(request):
                         else:
                             htmlestado = '<span class="badge bg-danger fs-6">INACTIVO</span>'
 
+                        if d.logo:
+                            htmlogo='<img class="bg-soft-primary rounded img-fluid avatar-40 me-3" src="../sireca/media/assets/images/shapes/01.png" alt="logo">'
+                        else:
+                            htmlogo = '<img class="bg-soft-primary rounded img-fluid avatar-40 me-3" src="../sireca/static/assets/images/shapes/01.png" alt="logo">'
+
                         lista.append({
+                            'logo':htmlogo,
                             'ruc': str(d.identificacion),
                             'nombre': str(d.nombre),
                             'direccion': str(d.direccion),

@@ -40,6 +40,8 @@
                         }
                     },
                     columns: [
+
+                         { data: 'logo',"orderable": true },
                          { data: 'ruc',"orderable": true },
                          { data: 'nombre',"orderable": true },
                          { data: 'direccion',"orderable": true },
@@ -213,7 +215,10 @@
                           var mensapresentacion= idempre==0 ? 'Se ingreso correctamente' : 'Se actualizo correctamente'
                           const formData = new FormData(this);
                           formData.append('action', 'agregar');
+                          if ($('#imglogo')[0].files[0])
+                            formData.append('imglogo', $('#imglogo')[0].files[0]);
                           formData.append('id',  idempre);
+
                           $.ajax({
                              url: '/empresa',
                              type: "POST",
@@ -445,6 +450,8 @@
                     <table id="tablaempresa" class="table table-striped"   >
                  <thead>
                     <tr>
+
+                       <th>Logo</th>
                        <th>Ruc</th>
                        <th>Razón Social</th>
                        <th>Dirección</th>
@@ -455,6 +462,7 @@
                     </tr>
 
                      <tr>
+                        <th class="filtro-columna sin-filtrado"></th>
                         <th class="filtro-columna filtro-ruc"></th>
                         <th class="filtro-columna filtro-nombre"></th>
                         <th class="filtro-columna sin-filtrado"></th>
@@ -483,7 +491,7 @@
           </div>
           <div class="modal-body">
              <div class="card-body">
-               <form id="frmingresoempresa" novalidate method="post">
+               <form id="frmingresoempresa" novalidate enctype="multipart/form-data" method="post">
 
                    <ul class="nav nav-tabs" id="myTab" role="tablist">
                       <li class="nav-item" role="presentation">
@@ -528,7 +536,7 @@
                                               <svg class="upload-button icon-14" width="14" viewBox="0 0 24 24">
                                                     <path fill="#ffffff" d="M19,13H5V11H19V13Z" /> <!-- ícono de "menos" / quitar -->
                                               </svg>
-                                             <input class="file-upload" type="file" id="imglogo" accept=".jpg,.jpeg,.png"  >
+                                             <input class="file-upload" type="file" id="imglogo" name="imglogo" accept=".jpg,.jpeg,.png"  >
                                           </label>
                                           <button type="button" id="btn-quitar-img"
                                               class="upload-icone bg-danger position-absolute top-0 end-0 rounded-circle"
