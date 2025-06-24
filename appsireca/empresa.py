@@ -3,6 +3,7 @@ import json
 from django.contrib.admin.models import LogEntry, ADDITION, DELETION
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -21,65 +22,62 @@ def view(request):
         if request.method == 'POST':
             action = request.POST['action']
             if action == 'agregar':
-                try:
-                    data = {'title': ''}
-                    nombre = str(request.POST['txtrazonsocial']).upper()
-                    if int(request.POST['cmbestado']) == 1:
-                        estado = True
-                    else:
-                        estado = False
+                with transaction.atomic():
+                    try:
+                        data = {'title': ''}
+                        nombre = str(request.POST['txtrazonsocial']).upper()
+                        if int(request.POST['cmbestado']) == 1:
+                            estado = True
+                        else:
+                            estado = False
 
-                    if int(request.POST['id'])==0:
-                        if Empresa.objects.filter(identificacion= str(request.POST['txtidentificacion'])).exists():
-                            return HttpResponse(json.dumps({'result': 'bad', 'message': 'La identifación ya se encuentra registrada'}),
-                                                content_type="application/json")
+                        if int(request.POST['id'])==0:
+                            if Empresa.objects.filter(identificacion= str(request.POST['txtidentificacion'])).exists():
+                                return HttpResponse(json.dumps({'result': 'bad', 'message': 'La identifación ya se encuentra registrada'}),
+                                                    content_type="application/json")
 
 
-                        mensaje = 'Nuevo Empresa'
-                        actividad=int(request.POST.get('cmbactividad')) if int(request.POST.get('cmbactividad')) else None
+                            mensaje = 'Nuevo Empresa'
+                            actividad=int(request.POST.get('cmbactividad')) if int(request.POST.get('cmbactividad')) else None
 
-                        empresa = Empresa(tipoidentificacion_id=int(request.POST['cmbtipoidentificacion']),
-                                          identificacion=request.POST['txtidentificacion'],actividad_id=actividad,
-                                          nombre=nombre, direccion=str(request.POST['txtdireccion']).upper() ,estado=estado)
+                            empresa = Empresa(tipoidentificacion_id=int(request.POST['cmbtipoidentificacion']),
+                                              identificacion=request.POST['txtidentificacion'],actividad_id=actividad,
+                                              nombre=nombre, direccion=str(request.POST['txtdireccion']).upper() ,estado=estado)
 
-                        # Guardar el representante legal
+                            # Guardar el representante legal
 
-                        tipoidentificacion = models.ForeignKey(TipoIdentificacion, blank=True, null=True,
-                                                               on_delete=models.CASCADE)
-                        identificacion = models.CharField(max_length=13, blank=True, null=True)
-                        nombre = models.CharField(max_length=500, null=True)
-                        apellido1 = models.CharField(max_length=200, null=True)
-                        apellido2 = models.CharField(max_length=200, null=True)
-                        direccion = models.CharField(max_length=2000, null=True)
-                        imagen = models.FileField(upload_to="empresas_representante_foto/", blank=True, null=True)
-                        empresa = models.ForeignKey(Empresa, blank=True, null=True, on_delete=models.CASCADE)
-                        estado = models.BooleanField(default=True)
+                            representantelegal=RepresentanteEmpresa(tipoidentificacion_id=int(request.POST['cmbtipoidentificacionrep']) if int(request.POST['cmbtipoidentificacion'])>0 else None,
+                                                                    identificacion=request.POST['txtidentificacionrep'],nombre=str(request.POST['txtnombrerep']),
+                                                                    apellido1=str(request.POST['txtapellido1']),apellido2=str(request.POST['txtapellido2']),
+                                                                    telefonoconvencional=str(request.POST['txttelefconv']),celular=str(request.POST['txtcelular']),
+                                                                    otrocelular=str(request.POST['txtcelula2r']),correo=str(request.POST['txtcorreo']))
 
-                        representantelegal=RepresentanteEmpresa(tipoidentificacion_id=int(request.POST['cmbtipoidentificacionrep']) if int(request.POST['cmbtipoidentificacion'])>0 else None,
-                                                                identificacion=request.POST['txtidentificacionrep'],nombre=str(request.POST['txtnombrerep']),
-                                                                apellido1=str(request.POST['txtapellido1']),apellido2=str(request.POST['txtapellido2']),tele)
+                        else:
+                            mensaje = 'Actualizado Empresa'
+                            empresa = Empresa.objects.get(id=int(request.POST['id']))
+                            empresa.nombre = nombre
+                            empresa.estado = estado
 
-                    else:
-                        mensaje = 'Actualizado Empresa'
-                        empresa = Empresa.objects.get(id=int(request.POST['id']))
-                        empresa.nombre = nombre
-                        empresa.estado = estado
+                        empresa.save()
+                        #preguntar si viene una imagen de la empresa
+                        if "imglogo" in request.FILES:
+                            empresa.logo=request.FILES["imglogo"]
+                            empresa.save()
+                        representantelegal.save()
 
-                    empresa.save()
-
-                    client_address = ip_client_address(request)
-                    LogEntry.objects.log_action(
-                        user_id=request.user.pk,
-                        content_type_id=ContentType.objects.get_for_model(empresa).pk,
-                        object_id=empresa.id,
-                        object_repr=force_text(empresa),
-                        action_flag=ADDITION,
-                        change_message=mensaje + ' (' + client_address + ')')
-                    data['result'] = 'ok'
-                    return HttpResponse(json.dumps(data), content_type="application/json")
-                except Exception as ex:
-                    return HttpResponse(json.dumps({'result': 'bad', 'message': str(ex)}),
-                                        content_type="application/json")
+                        client_address = ip_client_address(request)
+                        LogEntry.objects.log_action(
+                            user_id=request.user.pk,
+                            content_type_id=ContentType.objects.get_for_model(empresa).pk,
+                            object_id=empresa.id,
+                            object_repr=force_text(empresa),
+                            action_flag=ADDITION,
+                            change_message=mensaje + ' (' + client_address + ')')
+                        data['result'] = 'ok'
+                        return HttpResponse(json.dumps(data), content_type="application/json")
+                    except Exception as ex:
+                        return HttpResponse(json.dumps({'result': 'bad', 'message': str(ex)}),
+                                            content_type="application/json")
 
 
             if action == 'eliminar':

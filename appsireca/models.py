@@ -251,8 +251,7 @@ class RepresentanteEmpresa(models.Model):
     telefonoconvencional = models.CharField(max_length=100, null=True)
     celular = models.CharField(max_length=100, null=True)
     otrocelular = models.CharField(max_length=100, null=True)
-
-
+    correo = models.CharField(max_length=100, null=True)
     imagen=models.FileField(upload_to="empresas_representante_foto/", blank=True, null=True)
     empresa = models.ForeignKey(Empresa, blank=True, null=True, on_delete=models.CASCADE)
     estado = models.BooleanField(default=True)
