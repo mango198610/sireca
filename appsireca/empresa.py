@@ -105,6 +105,7 @@ def view(request):
                     data = {'title': ''}
 
                     empresa = Empresa.objects.get(pk=int(request.POST['id']))
+                    reprempresa=RepresentanteEmpresa.objects.filter(empresa=empresa).first()
                     modelactiv= ActividadComercial.objects.filter(sector=empresa.actividad.sector) if empresa.actividad.sector else []
                     data['empresa'] = [
                         {'id': empresa.id,
@@ -114,6 +115,10 @@ def view(request):
                          "direccion": str(empresa.direccion),"sector":getattr(getattr(empresa.actividad, 'sector', None), 'id', 0),
                          "actividad":  getattr(empresa.actividad, 'id', 0),
                          "listactividad":[{"id":x.id,"nombre":x.nombre} for x in modelactiv],
+                         "tipoidentificacionrep": reprempresa.tipoidentificacion_id  if reprempresa else '',
+                         "identificacion": reprempresa.identificacion  if reprempresa else '',
+                         "nombres": reprempresa.nombre  if reprempresa else '',
+                         "apellido": reprempresa.nombre  if reprempresa else '',
                          }]
 
                     data['result'] = 'ok'
@@ -216,7 +221,7 @@ def view(request):
                             htmlestado = '<span class="badge bg-danger fs-6">INACTIVO</span>'
 
                         if d.logo:
-                            htmlogo='<img class="bg-soft-primary rounded img-fluid avatar-40 me-3" src="../sireca/media/assets/images/shapes/01.png" alt="logo">'
+                            htmlogo='<img class="bg-soft-primary rounded img-fluid avatar-40 me-3" src="../sireca/media'+d.logo.url+'" alt="logo">'
                         else:
                             htmlogo = '<img class="bg-soft-primary rounded img-fluid avatar-40 me-3" src="../sireca/static/assets/images/shapes/01.png" alt="logo">'
 
