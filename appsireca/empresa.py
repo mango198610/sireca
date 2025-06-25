@@ -116,9 +116,15 @@ def view(request):
                          "actividad":  getattr(empresa.actividad, 'id', 0),
                          "listactividad":[{"id":x.id,"nombre":x.nombre} for x in modelactiv],
                          "tipoidentificacionrep": reprempresa.tipoidentificacion_id  if reprempresa else '',
-                         "identificacion": reprempresa.identificacion  if reprempresa else '',
+                         "identificacionrep": reprempresa.identificacion  if reprempresa else '',
+                         "logo":str('../sireca/media'+empresa.logo.url) or '',
                          "nombres": reprempresa.nombre  if reprempresa else '',
-                         "apellido": reprempresa.nombre  if reprempresa else '',
+                         "apellido1": reprempresa.apellido1  if reprempresa else '',
+                         "apellido2": reprempresa.apellido2  if reprempresa else '',
+                         "telefoconv": reprempresa.telefonoconvencional  if reprempresa else '',
+                         "celular": reprempresa.celular  if reprempresa else '',
+                         "otrocelular": reprempresa.otrocelular  if reprempresa else '',
+                         "email": reprempresa.correo  if reprempresa else '',
                          }]
 
                     data['result'] = 'ok'

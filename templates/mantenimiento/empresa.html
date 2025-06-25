@@ -295,11 +295,31 @@
                                  $("#cmbsector").val(parseInt(data.empresa[0].sector));
                                  $('#cmbsector').trigger('change.select2');
                                  $("#txtdireccion").val(data.empresa[0].direccion);
+                                 $("#txtidentificacionrep").val(data.empresa[0].tipoidentificacionrep);
+                                 $("#txtnombrerep").val(data.empresa[0].nombres);
+                                 $("#txtapellido1").val(data.empresa[0].txtapellido1);
+                                 $("#txtapellido2").val(data.empresa[0].txtapellido2);
+                                 $("#txttelefconv").val(data.empresa[0].telefoconv);
+                                 $("#txttelefconv").val(data.empresa[0].celular);
 
                                  for (var x in data.empresa[0].listactividad) {
                                      activitxt = activitxt + '<option  value="' + data.empresa[0].listactividad[x].id + '"> ' + data.empresa[0].listactividad[x].nombre + '</option>';
                                  }
                                  $("#cmbactividad").html(activitxt);
+                                 if (data.empresa[0].logo!='') {
+                                     previewImg.src = data.empresa[0].logo;
+                                     // Oculta los temas
+                                     document.querySelectorAll('.profile-img-edit img:not(#preview)').forEach(img => img.style.display = 'none');
+                                     // Mostrar el botón para quitar imagen
+                                     btnQuitar.style.display = 'inline-block';
+                                 }else{
+                                     previewImg.src = '';
+                                     // Oculta los temas
+                                     document.querySelectorAll('.profile-img-edit img:not(#preview)').forEach(img => img.style.display = 'none');
+                                     // Mostrar el botón para quitar imagen
+                                     btnQuitar.style.display = 'inline-block';
+                                 }
+
 
 
                              }else{
