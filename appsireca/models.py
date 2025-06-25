@@ -198,6 +198,7 @@ class Persona(models.Model):
 class PerfilPersona(models.Model):
     perfil = models.ForeignKey(Perfil, on_delete=models.CASCADE)
     persona = models.ForeignKey(Persona, blank=True, null=True, on_delete=models.CASCADE)
+    empresa = models.ForeignKey('Empresa', blank=True, null=True, on_delete=models.CASCADE)
     estado = models.BooleanField(default=True)
 
     def __str__(self):
@@ -229,6 +230,14 @@ class Banco(models.Model):
     def __str__(self):
         return str(self.nombre)
 
+class Cargo(models.Model):
+    nombre = models.CharField(max_length=1000, blank=True, null=True)
+    estado = models.BooleanField(default=True)
+
+    def __str__(self):
+        return str(self.nombre)
+
+
 class Empresa(models.Model):
     tipoidentificacion = models.ForeignKey(TipoIdentificacion, blank=True, null=True, on_delete=models.CASCADE)
     actividad = models.ForeignKey(ActividadComercial, blank=True, null=True, on_delete=models.CASCADE)
@@ -254,6 +263,37 @@ class RepresentanteEmpresa(models.Model):
     correo = models.CharField(max_length=100, null=True)
     imagen=models.FileField(upload_to="empresas_representante_foto/", blank=True, null=True)
     empresa = models.ForeignKey(Empresa, blank=True, null=True, on_delete=models.CASCADE)
+    cargo = models.ForeignKey(Cargo, blank=True, null=True, on_delete=models.CASCADE)
+    estado = models.BooleanField(default=True)
+
+
+class EmpresaOriginador(models.Model):
+    tipoidentificacion = models.ForeignKey(TipoIdentificacion, blank=True, null=True, on_delete=models.CASCADE)
+    actividad = models.ForeignKey(ActividadComercial, blank=True, null=True, on_delete=models.CASCADE)
+    identificacion = models.CharField(max_length=13, blank=True, null=True)
+    nombre = models.CharField(max_length=1000, null=True)
+    direccion = models.CharField(max_length=2000, null=True)
+    logo=models.FileField(upload_to="originador_logo/", blank=True, null=True)
+    estado = models.BooleanField(default=True)
+    empresa=models.ForeignKey(Empresa, blank=True, null=True, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return str(self.nombre) + ' - ' + str(self.identificacion)
+
+class RepresentanteEmpresaOriginador(models.Model):
+    tipoidentificacion = models.ForeignKey(TipoIdentificacion, blank=True, null=True, on_delete=models.CASCADE)
+    identificacion = models.CharField(max_length=13, blank=True, null=True)
+    nombre = models.CharField(max_length=500, null=True)
+    apellido1 = models.CharField(max_length=200, null=True)
+    apellido2 = models.CharField(max_length=200, null=True)
+    direccion = models.CharField(max_length=2000, null=True)
+    telefonoconvencional = models.CharField(max_length=100, null=True)
+    celular = models.CharField(max_length=100, null=True)
+    otrocelular = models.CharField(max_length=100, null=True)
+    correo = models.CharField(max_length=100, null=True)
+    imagen=models.FileField(upload_to="originador_representante_foto/", blank=True, null=True)
+    empresa = models.ForeignKey(EmpresaOriginador, blank=True, null=True, on_delete=models.CASCADE)
+    cargo = models.ForeignKey(Cargo, blank=True, null=True, on_delete=models.CASCADE)
     estado = models.BooleanField(default=True)
 
 

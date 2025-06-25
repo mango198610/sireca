@@ -2,7 +2,7 @@
 from django.contrib import admin
 
 from appsireca.models import ModuloPerfil, Perfil, Modulo, AccesoModulo, PerfilPersona, Pais, Provincia, Canton, \
-    Parroquia, Persona, Sexo, TipoIdentificacion, Nacionalidad, SectorComercial, ActividadComercial
+    Parroquia, Persona, Sexo, TipoIdentificacion, Nacionalidad, SectorComercial, ActividadComercial, Cargo
 
 admin.site.register(ModuloPerfil)
 admin.site.register(Perfil)
@@ -19,3 +19,4 @@ admin.site.register(TipoIdentificacion)
 admin.site.register(Nacionalidad)
 admin.site.register(SectorComercial)
 admin.site.register(ActividadComercial)
+admin.site.register(Cargo)

@@ -18,7 +18,7 @@ from django.urls import re_path as url # from django.conf.urls import url # se u
 from django.contrib import admin
 import django.views.static
 
-from appsireca import views, perfil, modulo, persona, usuario, banco, parroquia, empresa
+from appsireca import views, perfil, modulo, persona, usuario, banco, parroquia, empresa, originador
 from sireca import settings
 
 urlpatterns = []
@@ -42,6 +42,7 @@ urlpatterns += {
     url(r'^banco', banco.view),
     url(r'^parroquia', parroquia.view),
     url(r'^empresa', empresa.view),
+    url(r'^originador', originador.view),
 
 
 

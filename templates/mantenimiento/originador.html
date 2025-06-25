@@ -32,13 +32,12 @@
                   }
 
                   function validarRuc(ruc) {
+                        alert(ruc)
                         if (!/^\d{13}$/.test(ruc)) return false;
-                        const cedula = ruc.substring(0, 10);
-                        return validarCedula(cedula);
                   }
 
                   function buscar(){
-                       location.href = "/empresa?acc={{ permisopcion.id }}";
+                       location.href = "/originador?acc={{ permisopcion.id }}";
                   }
 
                   $("#cmbsector").select2({width: "100%", dropdownParent: $('#ventanaempresa')});
@@ -59,7 +58,7 @@
                         }
                    },
                    ajax: {
-                        url: '/empresa',
+                        url: '/originador',
                         type: 'POST',
                         data: function (d) {
                             d.action = 'serverSide';
@@ -152,7 +151,7 @@
                                 .html('<option value="">Cargando...</option>')
                                 .trigger('change.select2');
 
-                            $.post('/empresa', { action: 'actividad', idsector: val }, function (data) {
+                            $.post('/originador', { action: 'actividad', idsector: val }, function (data) {
                                 actividadSelect.empty().append('<option value="">Seleccione</option>');
                                 for (let act of data.listactividad) {
                                     actividadSelect.append(`<option value="${act.id}">${act.nombre}</option>`);
@@ -211,7 +210,7 @@
                                 feedback.style.display = 'none';
                                 const nombreCampo = field.id;
                                 if (nombreCampo === 'txtidentificacion') {
-                                    if(!validarRuc($("#txtidentificacion").val())) {
+                                    if(!validarRuc($('#txtidentificacion').val().trim())) {
                                         feedback.textContent = "El RUC ingresado no es válido.";
                                         feedback.style.display = 'block';
                                         valido = false;
@@ -279,7 +278,7 @@
                           formData.append('id',  idempre);
 
                           $.ajax({
-                             url: '/empresa',
+                             url: '/originador',
                              type: "POST",
                              contentType: false,
                              data: formData,
@@ -321,7 +320,7 @@
 
                   $("#cmbsector").change(function () {
 
-                     $.post("/empresa", {
+                     $.post("/originador", {
                          "action": "actividad",
                          idsector: $("#cmbsector").val()
                      }, function (data) {
@@ -348,7 +347,7 @@
                          Loader.open();
                          $("#tituloventana").html("Actualizar Empresa");
                          idempre=idempr;
-                         $.post("/empresa", {
+                         $.post("/originador", {
                              "action": "buscardata",
                               "id":idempre
                          }, function (data) {
@@ -432,7 +431,7 @@
                                     formData.append('id', id);
 
                                     $.ajax({
-                                        url: '/empresa',
+                                        url: '/originador',
                                         type: "POST",
                                         contentType: false,
                                         data: formData,
@@ -514,7 +513,7 @@
 
                     if (idempre > 0) {
                         // Llamar al backend para eliminar el logo en el servidor
-                        $.post("/empresa", {
+                        $.post("/originador", {
                             action: "eliminarlogo",
                             id: idempre
                         }, function (data) {
@@ -604,7 +603,7 @@
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="tituloventana" >Ingresar Empresa</h5>
+            <h5 class="modal-title" id="tituloventana" >Ingresar Originador</h5>
           </div>
           <div class="modal-body">
              <div class="card-body">
@@ -620,7 +619,19 @@
                    </ul>
                    <div class="tab-content">
                        <div class="tab-pane active" id="datosgenerales" role="tabpanel" aria-labelledby="datosgenerales-tab">
-                             <div class="row">
+                            <div class="row">
+                                <div class="col-sm-12 col-md-12 col-lg-12">
+                                    <div class="form-group">
+                                        <label class="form-label">Empresa</label>
+                                        <select id="cmbempresapertenece" name="cmbempresapertenece" required class="form-select mb-3 shadow-none">
+                                             {% for xlistadoempresa in listadoempresa %}
+                                                       <option value='{{ xlistadoempresa.id }}'>{{ xlistadoempresa.nombre }}</option>
+                                             {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
                                 <div class="col-sm-4 col-md-4 col-lg-4">
                                     <div class="form-group">
                                         <label class="form-label">Tipo Identificación</label>

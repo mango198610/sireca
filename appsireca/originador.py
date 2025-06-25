@@ -9,7 +9,7 @@ from django.shortcuts import render
 from django.utils.encoding import force_str as force_text
 from appsireca.funciones import ip_client_address, buscaractividad
 from appsireca.models import Empresa, AccesoModulo, SectorComercial, TipoIdentificacion, ActividadComercial, \
-    RepresentanteEmpresa,Cargo
+    RepresentanteEmpresa, Cargo, EmpresaOriginador, RepresentanteEmpresaOriginador
 from sireca.settings import ID_TIPO_IDENTIFICACION_RUC
 from django.db import transaction
 from appsireca.views import addUserData
@@ -34,29 +34,29 @@ def view(request):
                             request.POST.get('cmbactividad')) else None
 
                         if int(request.POST['id'])==0:
-                            if Empresa.objects.filter(identificacion= str(request.POST['txtidentificacion'])).exists():
+                            if EmpresaOriginador.objects.filter(identificacion= str(request.POST['txtidentificacion'])).exists():
                                 return HttpResponse(json.dumps({'result': 'bad', 'message': 'La identifación ya se encuentra registrada'}),
                                                     content_type="application/json")
 
 
-                            mensaje = 'Nuevo Empresa'
+                            mensaje = 'Nuevo Empresa Originador'
 
-                            empresa = Empresa(tipoidentificacion_id=int(request.POST['cmbtipoidentificacion']),
+                            empresa = EmpresaOriginador(tipoidentificacion_id=int(request.POST['cmbtipoidentificacion']),
                                               identificacion=request.POST['txtidentificacion'],actividad_id=actividad ,
                                               nombre=nombre, direccion=str(request.POST['txtdireccion']).upper() ,estado=estado)
 
                             # Guardar el representante legal
 
-                            representantelegal=RepresentanteEmpresa(tipoidentificacion_id=int(request.POST['cmbtipoidentificacionrep']) if int(request.POST['cmbtipoidentificacion'])>0 else None,
+                            representantelegal=RepresentanteEmpresaOriginador(tipoidentificacion_id=int(request.POST['cmbtipoidentificacionrep']) if int(request.POST['cmbtipoidentificacion'])>0 else None,
                                                                     identificacion=request.POST['txtidentificacionrep'],nombre=str(request.POST['txtnombrerep']),
                                                                     apellido1=str(request.POST['txtapellido1']),apellido2=str(request.POST['txtapellido2']),
                                                                     telefonoconvencional=str(request.POST['txttelefconv']),celular=str(request.POST['txtcelular']),cargo_id=int(request.POST['cmbcargo']) if int(request.POST['cmbcargo'])>0 else None,
                                                                     otrocelular=str(request.POST['txtcelular2']),correo=str(request.POST['txtcorreo']),empresa=empresa)
 
                         else:
-                            mensaje = 'Actualizado Empresa'
-                            empresa = Empresa.objects.get(id=int(request.POST['id']))
-                            representantelegal=RepresentanteEmpresa.objects.filter(empresa=empresa).first()
+                            mensaje = 'Actualizado Empresa Originador'
+                            empresa = EmpresaOriginador.objects.get(id=int(request.POST['id']))
+                            representantelegal=RepresentanteEmpresaOriginador.objects.filter(empresa=empresa).first()
                             empresa.nombre = nombre
                             empresa.identificacion=request.POST['txtidentificacion']
                             empresa.actividad_id=actividad
@@ -109,7 +109,7 @@ def view(request):
                         object_id=empresa.id,
                         object_repr=force_text(empresa),
                         action_flag=DELETION,
-                        change_message=str('Empresa eliminado por el usuario ') + str(request.user.username) + ' (' + client_address + ')')
+                        change_message=str('Empresa Originador eliminado por el usuario ') + str(request.user.username) + ' (' + client_address + ')')
 
                     empresa.delete()
 
@@ -131,7 +131,7 @@ def view(request):
                         object_id=empresa.id,
                         object_repr=force_text(empresa),
                         action_flag=DELETION,
-                        change_message=str('Logo eliminado por el usuario ') + str(request.user.username) + ' (' + client_address + ')')
+                        change_message=str('Logo Originador eliminado por el usuario ') + str(request.user.username) + ' (' + client_address + ')')
 
                     return HttpResponse(json.dumps({'result': 'ok'}), content_type="application/json")
                 except Exception as e:
@@ -191,13 +191,13 @@ def view(request):
             if action == 'serverSide':
                 try:
                     lista = []
+                    data={}
                     filtrado = False
                     draw = int(request.POST.get('draw', 1))
                     start = int(request.POST.get('start', 0))
                     length = int(request.POST.get('length', 10))
                     busqueda = str(request.POST['search[value]']) if 'search[value]' in request.POST else None
-
-                    listaempresa = Empresa.objects.filter()
+                    listaempresa = EmpresaOriginador.objects.filter() if request.user.is_superuser else EmpresaOriginador.objects.filter(estado=True,pk=data['perfilpersona'].empresa.id)
                     registros_total = listaempresa.count()
                     if busqueda:
                         search = busqueda
@@ -320,15 +320,16 @@ def view(request):
                                         content_type="application/json")
 
         else:
-            data = {'title':'Empresa'}
+            data = {'title':'Empresa Originador'}
             addUserData(request, data)
             data['permisopcion'] = AccesoModulo.objects.get(id=int(request.GET['acc']))
             data['listasector'] = SectorComercial.objects.filter(estado=True)
+            data['listadoempresa'] = Empresa.objects.filter(estado=True) if request.user.is_superuser else Empresa.objects.filter(estado=True,pk=data['perfilpersona'].empresa.id)
             data['listatipoidentifcacion'] = TipoIdentificacion.objects.filter(id=ID_TIPO_IDENTIFICACION_RUC,estado=True)
             data['listatipoidentifcacionrep'] = TipoIdentificacion.objects.filter(estado=True)
             data['listacargo'] = Cargo.objects.filter(estado=True)
 
-            return render(request, "mantenimiento/empresa.html", data)
+            return render(request, "mantenimiento/originador.html", data)
 
     except Exception as e:
         print('Error excepcion cursos '+str(e))
