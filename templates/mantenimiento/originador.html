@@ -32,8 +32,10 @@
                   }
 
                   function validarRuc(ruc) {
-                        alert(ruc)
-                        if (!/^\d{13}$/.test(ruc)) return false;
+                      if (!/^\d{13}$/.test(ruc)) {
+                            return false;
+                      }
+                      return true;
                   }
 
                   function buscar(){
@@ -43,6 +45,7 @@
                   $("#cmbsector").select2({width: "100%", dropdownParent: $('#ventanaempresa')});
                   $("#cmbactividad").select2({width: "100%", dropdownParent: $('#ventanaempresa')});
                   $("#cmbcargo").select2({width: "100%", dropdownParent: $('#ventanaempresa')});
+                  $("#cmbempresapertenece").select2({width: "100%", dropdownParent: $('#ventanaempresa')});
 
                   var tablaempresa=new DataTable('#tablaempresa', {
                    language: {
@@ -67,6 +70,7 @@
                     columns: [
 
                          { data: 'logo',"orderable": true },
+                         { data: 'tiporiginador',"orderable": true },
                          { data: 'ruc',"orderable": true },
                          { data: 'nombre',"orderable": true },
                          { data: 'direccion',"orderable": true },
@@ -261,7 +265,7 @@
                 }
 
                 $("#btnagregar").click(function() {
-                       $("#tituloventana").html("Ingresar Empresa");
+                       $("#tituloventana").html("Casa Comercial / Entidad Financiera");
                        $("#ventanaempresa").modal({backdrop: 'static', keyboard: false});
                        $("#ventanaempresa").modal("show");
                 });
@@ -553,7 +557,7 @@
          <div class="card">
             <div class="card-header d-flex justify-content-between">
                <div class="header-title">
-                  <h4 class="card-title">Listado de Empresas</h4>
+                  <h4 class="card-title">Listado de Casa Comercial / Entidad Financiera</h4>
                </div>
             </div>
             <div class="card-body">
@@ -568,6 +572,7 @@
                     <tr>
 
                        <th>Logo</th>
+                       <th>Tipo</th>
                        <th>Ruc</th>
                        <th>Razón Social</th>
                        <th>Dirección</th>
@@ -579,6 +584,7 @@
 
                      <tr>
                         <th class="filtro-columna sin-filtrado"></th>
+                        <th class="filtro-columna filtro-tiporiginador"></th>
                         <th class="filtro-columna filtro-ruc"></th>
                         <th class="filtro-columna filtro-nombre"></th>
                         <th class="filtro-columna sin-filtrado"></th>
@@ -620,12 +626,24 @@
                    <div class="tab-content">
                        <div class="tab-pane active" id="datosgenerales" role="tabpanel" aria-labelledby="datosgenerales-tab">
                             <div class="row">
-                                <div class="col-sm-12 col-md-12 col-lg-12">
+                                <div class="col-sm-7 col-md-7 col-lg-7">
                                     <div class="form-group">
                                         <label class="form-label">Empresa</label>
                                         <select id="cmbempresapertenece" name="cmbempresapertenece" required class="form-select mb-3 shadow-none">
+                                             <option value="0">SELECCIONAR EMPRESA</option>
                                              {% for xlistadoempresa in listadoempresa %}
                                                        <option value='{{ xlistadoempresa.id }}'>{{ xlistadoempresa.nombre }}</option>
+                                             {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-5 col-md-5 col-lg-5">
+                                    <div class="form-group">
+                                        <label class="form-label">Tipo</label>
+                                        <select id="cmbtipoempresa" name="cmbtipoempresa" required class="form-select mb-3 shadow-none">
+                                             <option value="0">SELECCIONAR EL TIPO</option>
+                                             {% for xlistadotipooriginador in listadotipooriginador %}
+                                                       <option value='{{ xlistadotipooriginador.id }}'>{{ xlistadotipooriginador.nombre }}</option>
                                              {% endfor %}
                                         </select>
                                     </div>

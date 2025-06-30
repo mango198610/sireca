@@ -238,6 +238,14 @@ class Cargo(models.Model):
         return str(self.nombre)
 
 
+class TipoOriginador(models.Model):
+    nombre = models.CharField(max_length=1000, blank=True, null=True)
+    estado = models.BooleanField(default=True)
+
+    def __str__(self):
+        return str(self.nombre)
+
+
 class Empresa(models.Model):
     tipoidentificacion = models.ForeignKey(TipoIdentificacion, blank=True, null=True, on_delete=models.CASCADE)
     actividad = models.ForeignKey(ActividadComercial, blank=True, null=True, on_delete=models.CASCADE)
@@ -276,6 +284,7 @@ class EmpresaOriginador(models.Model):
     logo=models.FileField(upload_to="originador_logo/", blank=True, null=True)
     estado = models.BooleanField(default=True)
     empresa=models.ForeignKey(Empresa, blank=True, null=True, on_delete=models.CASCADE)
+    tipo=models.ForeignKey(TipoOriginador, blank=True, null=True, on_delete=models.CASCADE)
 
     def __str__(self):
         return str(self.nombre) + ' - ' + str(self.identificacion)

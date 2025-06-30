@@ -9,7 +9,7 @@ from django.shortcuts import render
 from django.utils.encoding import force_str as force_text
 from appsireca.funciones import ip_client_address, buscaractividad
 from appsireca.models import Empresa, AccesoModulo, SectorComercial, TipoIdentificacion, ActividadComercial, \
-    RepresentanteEmpresa, Cargo, EmpresaOriginador, RepresentanteEmpresaOriginador
+    RepresentanteEmpresa, Cargo, EmpresaOriginador, RepresentanteEmpresaOriginador, TipoOriginador
 from sireca.settings import ID_TIPO_IDENTIFICACION_RUC
 from django.db import transaction
 from appsireca.views import addUserData
@@ -43,7 +43,7 @@ def view(request):
 
                             empresa = EmpresaOriginador(tipoidentificacion_id=int(request.POST['cmbtipoidentificacion']),
                                               identificacion=request.POST['txtidentificacion'],actividad_id=actividad ,
-                                              nombre=nombre, direccion=str(request.POST['txtdireccion']).upper() ,estado=estado)
+                                              nombre=nombre, direccion=str(request.POST['txtdireccion']).upper(),empresa_id=int(request.POST['cmbempresapertenece']),tipo_id=int(request.POST['cmbtipoempresa']) ,estado=estado)
 
                             # Guardar el representante legal
 
@@ -61,6 +61,8 @@ def view(request):
                             empresa.identificacion=request.POST['txtidentificacion']
                             empresa.actividad_id=actividad
                             empresa.direccion=str(request.POST['txtdireccion']).upper()
+                            empresa.empresa_id=int(request.POST['cmbempresapertenece'])
+                            empresa.tipo_id=int(request.POST['cmbtipoempresa'])
                             empresa.estado = estado
                             #actualizar el representante legal
                             representantelegal.tipoidentificacion_id=int(request.POST['cmbtipoidentificacionrep']) if int(
@@ -101,7 +103,7 @@ def view(request):
 
             if action == 'eliminar':
                 try:
-                    empresa=Empresa.objects.get(pk=int(request.POST['id']))
+                    empresa=EmpresaOriginador.objects.get(pk=int(request.POST['id']))
                     client_address = ip_client_address(request)
                     LogEntry.objects.log_action(
                         user_id=request.user.pk,
@@ -121,7 +123,7 @@ def view(request):
 
             if action == 'eliminarlogo':
                 try:
-                    empresa=Empresa.objects.get(pk=int(request.POST['id']))
+                    empresa=EmpresaOriginador.objects.get(pk=int(request.POST['id']))
                     empresa.logo=''
                     empresa.save()
                     client_address = ip_client_address(request)
@@ -143,8 +145,8 @@ def view(request):
                 try:
                     data = {'title': ''}
 
-                    empresa = Empresa.objects.get(pk=int(request.POST['id']))
-                    reprempresa=RepresentanteEmpresa.objects.filter(empresa=empresa).first()
+                    empresa = EmpresaOriginador.objects.get(pk=int(request.POST['id']))
+                    reprempresa=RepresentanteEmpresaOriginador.objects.filter(empresa=empresa).first()
                     modelactiv= ActividadComercial.objects.filter(sector=empresa.actividad.sector) if empresa.actividad.sector else []
                     cargolista=Cargo.objects.filter(estado=True)
                     data['empresa'] = [
@@ -275,6 +277,7 @@ def view(request):
 
                         lista.append({
                             'logo':htmlogo,
+                            'tiporiginador': str(d.tipo.nombre),
                             'ruc': str(d.identificacion),
                             'nombre': str(d.nombre),
                             'direccion': str(d.direccion),
@@ -295,7 +298,10 @@ def view(request):
 
                     estado = [{"id": 1, "nombre": "ACTIVO"},
                                      {"id": 2, "nombre": "INACTIVO"}]
+
                     sector =[{"id": x.id, "nombre": x.nombre} for x in SectorComercial.objects.filter(estado=True)]
+                    tipooriginador = [{"id": x.id, "nombre": x.nombre} for x in TipoOriginador.objects.filter(estado=True)]
+
                     actividad=[]
                     if request.POST['columns[4][search][value]'] != '':
                         actividad =[{"id":x.id, "nombre": x.nombre} for x in ActividadComercial.objects.filter(sector_id=int(request.POST['columns[4][search][value]']),estado=True).distinct()]
@@ -308,6 +314,7 @@ def view(request):
                         'filtro-select-sector': list(sector),
                         'filtro-select-actividad': list(actividad),
                         'filtro-select-estado': list(estado),
+                        'filtro-select-tiporiginador': list(tipooriginador),
                         'placeholderBusqueda': 'Buscar el nombre ',
                         'result': 'ok',
                         'filtrado': filtrado
@@ -327,6 +334,7 @@ def view(request):
             data['listadoempresa'] = Empresa.objects.filter(estado=True) if request.user.is_superuser else Empresa.objects.filter(estado=True,pk=data['perfilpersona'].empresa.id)
             data['listatipoidentifcacion'] = TipoIdentificacion.objects.filter(id=ID_TIPO_IDENTIFICACION_RUC,estado=True)
             data['listatipoidentifcacionrep'] = TipoIdentificacion.objects.filter(estado=True)
+            data['listadotipooriginador'] = TipoOriginador.objects.filter(estado=True)
             data['listacargo'] = Cargo.objects.filter(estado=True)
 
             return render(request, "mantenimiento/originador.html", data)
