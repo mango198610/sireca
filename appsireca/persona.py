@@ -2,18 +2,16 @@ import json
 from datetime import datetime
 from django.contrib.admin.models import LogEntry, CHANGE, ADDITION, DELETION
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils.encoding import force_str as force_text
 
-from appsireca.funciones import ip_client_address, MiPaginador, calculate_username
+from appsireca.funciones import ip_client_address, MiPaginador
 from appsireca.models import Persona, Canton, Parroquia, AccesoModulo, Sexo, Nacionalidad, Provincia, Perfil, \
-    TipoIdentificacion, PerfilPersona
+    TipoIdentificacion, TipoSangre, Sector, NivelAcademico, EstadoCivil, Empresa
 from appsireca.views import addUserData
-from sireca.settings import DEFAULT_PASSWORD
 
 
 @login_required(redirect_field_name='ret', login_url='/login')
@@ -84,7 +82,7 @@ def view(request):
                     return HttpResponse(json.dumps({'result': 'bad', 'message': str(ex)}),
                                         content_type="application/json")
 
-            if action == 'eliminar':
+            elif action == 'eliminar':
                 try:
                     persona=Persona.objects.get(pk=int(request.POST['id']))
                     client_address = ip_client_address(request)
@@ -103,6 +101,24 @@ def view(request):
                     return HttpResponse(json.dumps({'result': 'bad', 'message': str(e)}),
                                         content_type="application/json")
 
+            elif action == 'eliminarlogo':
+                try:
+                    persona=Persona.objects.get(pk=int(request.POST['id']))
+                    persona.imagen=''
+                    persona.save()
+                    client_address = ip_client_address(request)
+                    LogEntry.objects.log_action(
+                        user_id=request.user.pk,
+                        content_type_id=ContentType.objects.get_for_model(persona).pk,
+                        object_id=persona.id,
+                        object_repr=force_text(persona),
+                        action_flag=DELETION,
+                        change_message=str('Imagen Persona eliminado por el usuario ') + str(request.user.username) + ' (' + client_address + ')')
+
+                    return HttpResponse(json.dumps({'result': 'ok'}), content_type="application/json")
+                except Exception as e:
+                    return HttpResponse(json.dumps({'result': 'bad', 'message': str(e)}),
+                                        content_type="application/json")
 
             elif action == 'buscardata':
                 try:
@@ -112,6 +128,33 @@ def view(request):
                     data['persona'] = [
                         {'id': persona.id,
                          "nombre": str(persona.nombres),"estado": "1" if persona.estado else "2"
+                         }]
+
+                    data['persona'] = [
+                        {'id': persona.id,
+                         "tipoidentificacion": persona.tipoidentificacion.id,
+                         "identificacion": persona.identificacion,
+                         "nombre": str(persona.nombres),
+                         "apellido1": str(persona.apellido1),
+                         "apellido2": str(persona.apellido2),
+                         "sexo": getattr(persona.sexo ,'id', 0),
+                         "nacinalidad": getattr(persona.nacionalidad ,'id', 0),
+                         "tiposangre": getattr(persona.tiposangre ,'id', 0),
+                         "fechancimiento": str(persona.nacimiento),
+                         "provincia": getattr(persona.provincia ,'id', 0),
+                         "canton": getattr(persona.canton ,'id', 0),
+                         "padre": str(persona.padre),
+                         "madre": str(persona.madre),
+                         "provinciaresidencia":getattr(persona.provinciaresid, 'id', 0),
+                         "cantonresidencia":getattr(persona.cantonresid, 'id', 0),
+                         "parroquiaresidencia":getattr(persona.parroquia, 'id', 0),
+                         "calleprincipal":str(persona.direccion),
+                         "callesecundaria":str(persona.direccion2),
+                         "numerodomicilio":str(persona.num_direccion),
+
+
+
+
                          }]
 
                     data['result'] = 'ok'
@@ -312,6 +355,11 @@ def view(request):
             data['listaprovincia'] = Provincia.objects.filter(estado=True)
             data['listaperfil'] = Perfil.objects.filter(estado=True)
             data['listatipoidentifcacion'] = TipoIdentificacion.objects.filter(estado=True)
+            data['listatiposangre'] = TipoSangre.objects.filter(estado=True)
+            data['listasectorresidencia'] = Sector.objects.filter(estado=True)
+            data['listanivelacademico'] = NivelAcademico.objects.filter(estado=True)
+            data['listaestadocivil'] = EstadoCivil.objects.filter(estado=True)
+            data['listadoempresa'] = Empresa.objects.filter(estado=True)
 
 
 

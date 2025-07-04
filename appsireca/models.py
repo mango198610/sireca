@@ -154,6 +154,25 @@ class TipoIdentificacion(models.Model):
     estado = models.BooleanField(default=True)
 
 
+class TipoSangre(models.Model):
+    nombre = models.CharField(max_length=100, null=True)
+    estado = models.BooleanField(default=True)
+
+
+class Sector(models.Model):
+    nombre = models.CharField(max_length=100, null=True)
+    estado = models.BooleanField(default=True)
+
+
+class EstadoCivil(models.Model):
+    nombre = models.CharField(max_length=300, null=True)
+    estado = models.BooleanField(default=True)
+
+class NivelAcademico(models.Model):
+    nombre = models.CharField(max_length=300, null=True)
+    estado = models.BooleanField(default=True)
+
+
 class Persona(models.Model):
     nombres = models.CharField(max_length=100)
     apellido1 = models.CharField(max_length=100, verbose_name="1er Apellido")
@@ -176,7 +195,6 @@ class Persona(models.Model):
                                        on_delete=models.CASCADE)
     cantonresid = models.ForeignKey(Canton, related_name="CantondeResidencia", verbose_name="Canton de Residencia",
                                     blank=True, null=True, on_delete=models.CASCADE)
-    ciudad = models.CharField(max_length=100, verbose_name="Ciudad de Residencia", blank=True, null=True)
     parroquia = models.ForeignKey(Parroquia, verbose_name="Parroquia", blank=True, null=True,on_delete=models.CASCADE)
     telefono = models.CharField(max_length=50, verbose_name="Telefonos Moviles", blank=True, null=True)
     telefono_conv = models.CharField(max_length=50, verbose_name="Telefonos Fijos", blank=True, null=True)
@@ -185,6 +203,12 @@ class Persona(models.Model):
     email2 = models.CharField(max_length=200,blank=True, null=True, verbose_name="Correos Electronicos")
     usuario = models.ForeignKey(User,null=True,on_delete=models.CASCADE)
     fecha_registro = models.DateTimeField(blank=True, null=True)
+    tiposangre = models.ForeignKey(TipoSangre, verbose_name="Tipo Sangre", blank=True, null=True, on_delete=models.CASCADE)
+    sector = models.ForeignKey(Sector, verbose_name="Sector Direccion", blank=True, null=True, on_delete=models.CASCADE)
+    nivelacademico = models.ForeignKey(NivelAcademico, verbose_name="Nivel Academico", blank=True, null=True, on_delete=models.CASCADE)
+    estadocivil = models.ForeignKey(EstadoCivil, verbose_name="Estado Civil", blank=True, null=True, on_delete=models.CASCADE)
+    imagen = models.FileField(upload_to="persona_imagen/", blank=True, null=True)
+
 
 
     def nombre_completo_inverso(self):

@@ -149,6 +149,8 @@ def view(request):
                     reprempresa=RepresentanteEmpresaOriginador.objects.filter(empresa=empresa).first()
                     modelactiv= ActividadComercial.objects.filter(sector=empresa.actividad.sector) if empresa.actividad.sector else []
                     cargolista=Cargo.objects.filter(estado=True)
+                    modeloempresa=Empresa.objects.filter(estado=True) if request.user.is_superuser else Empresa.objects.filter(
+                        estado=True, pk=data['perfilpersona'].empresa.id)
                     data['empresa'] = [
                         {'id': empresa.id,
                          "tipoidentificacion": empresa.tipoidentificacion.id,
@@ -168,7 +170,10 @@ def view(request):
                          "celular": reprempresa.celular  if reprempresa else '',
                          "otrocelular": reprempresa.otrocelular  if reprempresa else '',
                          "email": reprempresa.correo  if reprempresa else '',
-                         "cargo": getattr(getattr(reprempresa, 'cargo', None), 'id', '0')
+                         "cargo": getattr(getattr(reprempresa, 'cargo', None), 'id', '0'),
+                         "idmepresapertenece":empresa.empresa.id,
+                         "listaempresa":[{"id":x.id,"nombre":x.nombre} for x in modeloempresa ],
+                         "tipoempresa": getattr(empresa.tipo, 'id', 0)
                          }]
 
                     data['result'] = 'ok'
@@ -218,13 +223,25 @@ def view(request):
                                 filtrado = True
 
                     if request.POST['columns[1][search][value]'] != '':
-                        ruc = request.POST['columns[1][search][value]']
+                        pertenece = request.POST['columns[1][search][value]']
+                        listaempresa = listaempresa.filter(
+                            empresa_id=pertenece).order_by('nombre')
+                        filtrado = True
+
+                    if request.POST['columns[2][search][value]'] != '':
+                        tipo = request.POST['columns[2][search][value]']
+                        listaempresa = listaempresa.filter(
+                            tipo_id=tipo).order_by('nombre')
+                        filtrado = True
+
+                    if request.POST['columns[3][search][value]'] != '':
+                        ruc = request.POST['columns[3][search][value]']
                         listaempresa = listaempresa.filter(
                             identificacion=ruc).order_by('nombre')
                         filtrado = True
 
-                    if request.POST['columns[2][search][value]'] != '':
-                        search = request.POST['columns[2][search][value]']
+                    if request.POST['columns[4][search][value]'] != '':
+                        search = request.POST['columns[4][search][value]']
                         if search:
                             ss = search.split(' ')
                             while '' in ss:
@@ -239,14 +256,14 @@ def view(request):
                                         nombre__icontains=ss[1])).order_by('nombre')
                                 filtrado = True
 
-                    if request.POST['columns[4][search][value]'] != '':
-                        sector = request.POST['columns[4][search][value]']
+                    if request.POST['columns[6][search][value]'] != '':
+                        sector = request.POST['columns[6][search][value]']
                         listaempresa = listaempresa.filter(
                             actividad__sector_id=sector).order_by('nombre')
                         filtrado = True
 
-                    if request.POST['columns[5][search][value]'] != '':
-                        actividad = request.POST['columns[5][search][value]']
+                    if request.POST['columns[7][search][value]'] != '':
+                        actividad = request.POST['columns[7][search][value]']
                         listaempresa = listaempresa.filter(
                             actividad_id=actividad).order_by('nombre')
                         filtrado = True
@@ -277,6 +294,7 @@ def view(request):
 
                         lista.append({
                             'logo':htmlogo,
+                            'pertenece':str(d.empresa.nombre),
                             'tiporiginador': str(d.tipo.nombre),
                             'ruc': str(d.identificacion),
                             'nombre': str(d.nombre),
@@ -300,11 +318,19 @@ def view(request):
                                      {"id": 2, "nombre": "INACTIVO"}]
 
                     sector =[{"id": x.id, "nombre": x.nombre} for x in SectorComercial.objects.filter(estado=True)]
+
+                    if request.user.is_superuser:
+                        modelempre=Empresa.objects.filter(estado=True)
+                    else:
+                        modelempre=Empresa.objects.filter(data['perfilpersona'].empresa.id,estado=True)
+
+                    empresa=[{"id": x.id, "nombre": x.nombre} for x in modelempre]
+
                     tipooriginador = [{"id": x.id, "nombre": x.nombre} for x in TipoOriginador.objects.filter(estado=True)]
 
                     actividad=[]
-                    if request.POST['columns[4][search][value]'] != '':
-                        actividad =[{"id":x.id, "nombre": x.nombre} for x in ActividadComercial.objects.filter(sector_id=int(request.POST['columns[4][search][value]']),estado=True).distinct()]
+                    if request.POST['columns[6][search][value]'] != '':
+                        actividad =[{"id":x.id, "nombre": x.nombre} for x in ActividadComercial.objects.filter(sector_id=int(request.POST['columns[6][search][value]']),estado=True).distinct()]
 
                     respuesta = {
                         'draw': draw,
@@ -312,6 +338,7 @@ def view(request):
                         'recordsFiltered': registros_filtrado,
                         'data': lista,
                         'filtro-select-sector': list(sector),
+                        'filtro-select-empresa': list(empresa),
                         'filtro-select-actividad': list(actividad),
                         'filtro-select-estado': list(estado),
                         'filtro-select-tiporiginador': list(tipooriginador),

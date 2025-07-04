@@ -70,6 +70,7 @@
                     columns: [
 
                          { data: 'logo',"orderable": true },
+                         { data: 'pertenece',"orderable": true },
                          { data: 'tiporiginador',"orderable": true },
                          { data: 'ruc',"orderable": true },
                          { data: 'nombre',"orderable": true },
@@ -141,7 +142,7 @@
 
                   const filtroActividad = function () {
                         const val = $.fn.dataTable.util.escapeRegex($(this).val());
-                        const columnActividad = $('#tablaempresa').DataTable().column(5);  // Ajusta índice si es necesario
+                        const columnActividad = $('#tablaempresa').DataTable().column(7);  // Ajusta índice si es necesario
                         columnActividad.search(val, false, false).draw();
                   }
 
@@ -359,6 +360,7 @@
                              if (data.result == 'ok') {
 
                                  var activitxt='';
+                                 var empresatxt='';
                                  var cargotxt='<option  value=0> SELECCIONAR EL CARGO </option>';
                                  $("#txtidentificacion").val(data.empresa[0].identificacion);
                                  $("#txtrazonsocial").val(data.empresa[0].nombre);
@@ -380,10 +382,17 @@
                                  }
                                  $("#cmbactividad").html(activitxt);
 
-                                 for (var xcrago in data.empresa[0].listacargo) {
-                                     cargotxt = cargotxt + '<option  value="' + data.empresa[0].listacargo[xcrago].id + '"> ' + data.empresa[0].listacargo[xcrago].nombre + '</option>';
+                                 for (var xcargo in data.empresa[0].listacargo) {
+                                     cargotxt = cargotxt + '<option  value="' + data.empresa[0].listacargo[xcargo].id + '"> ' + data.empresa[0].listacargo[xcargo].nombre + '</option>';
                                  }
                                  $("#cmbcargo").html(cargotxt);
+
+                                 for (var xempresa in data.empresa[0].listaempresa) {
+                                     empresatxt = empresatxt + '<option  value="' + data.empresa[0].listaempresa[xempresa].id + '"> ' + data.empresa[0].listaempresa[xempresa].nombre + '</option>';
+                                 }
+                                 $("#cmbempresapertenece").html(empresatxt);
+
+
 
                                  if (data.empresa[0].logo!='') {
                                      previewImg.src = data.empresa[0].logo;
@@ -403,6 +412,9 @@
                                  $('#cmbactividad').trigger('change.select2');
                                  $("#cmbcargo").val(parseInt(data.empresa[0].cargo));
                                  $('#cmbcargo').trigger('change.select2');
+                                 $("#cmbempresapertenece").val(parseInt(data.empresa[0].idmepresapertenece));
+                                 $('#cmbempresapertenece').trigger('change.select2');
+                                 $("#cmbtipoempresa").val(parseInt(data.empresa[0].tipoempresa));
                                  $("#ventanaempresa").modal({backdrop: 'static', keyboard: false});
                                  $("#ventanaempresa").modal("show");
                              }
@@ -507,9 +519,8 @@
                         }
 
                 });
-
-                // Acción al quitar imagen
-                btnQuitar.addEventListener('click', function () {
+                  // Acción al quitar imagen
+                  btnQuitar.addEventListener('click', function () {
                     inputFile.value = ''; // Borrar archivo seleccionado manualmente
 
                     // Oculta el botón de quitar
@@ -572,6 +583,7 @@
                     <tr>
 
                        <th>Logo</th>
+                       <th>Empresa</th>
                        <th>Tipo</th>
                        <th>Ruc</th>
                        <th>Razón Social</th>
@@ -584,7 +596,8 @@
 
                      <tr>
                         <th class="filtro-columna sin-filtrado"></th>
-                        <th class="filtro-columna filtro-tiporiginador"></th>
+                        <th class="filtro-columna filtro-select-empresa"></th>
+                        <th class="filtro-columna filtro-select-tiporiginador"></th>
                         <th class="filtro-columna filtro-ruc"></th>
                         <th class="filtro-columna filtro-nombre"></th>
                         <th class="filtro-columna sin-filtrado"></th>

@@ -4,13 +4,15 @@
 
     <script>
           $(function () {
-              
-              var idpersona=0;
-              
+
               $(document).ready(function () {
 
                   var idpersona=0;
-
+                  const inputFile = document.getElementById('imglogo');
+                  const btnQuitar = document.getElementById('btn-quitar-img');
+                  const previewImg = document.getElementById('preview');
+                  const imagenPorDefecto = "../../sireca/static/assets/images/avatars/01.png";
+                  const nombreArchivoValido = /^[a-zA-Z0-9_.\-]+$/;
                
                   function buscar(){
                        location.href = "/persona?acc={{ permisopcion.id }}";
@@ -447,23 +449,6 @@
                      }, 'json');
                   });
 
-                  $("#cmbpromocion").change(function () {
-
-                     $.post("/personas", {
-                         "action": "buscarpromocion",
-                         idpromo: $("#cmbpromocion").val()
-                     }, function (data) {
-                         var valorpromo = 0;
-                         if (data.result == 'ok') {
-                             valorpromo=parseFloat(data.valorpromo);
-                             $("#txtvalorpromocion").val(valorpromo);
-                         } else {
-                             $("#txtvalorpromocion").val(valorpromo);
-
-                         }
-                     }, 'json');
-                  });
-
                   
                   $("#cmbprovinciaresidencia").change(function () {
 
@@ -696,6 +681,81 @@
                       }
                   });
 
+                  document.getElementById('imglogo').addEventListener('change', function (event) {
+                        const file = event.target.files[0];
+
+                        if (file.size === 0) {
+                            swal("Error", "El archivo está vacío.", "error");
+                            inputFile.value = '';
+                            return;
+                        }
+
+                         const nombre = file.name;
+                         if (!nombreArchivoValido.test(nombre)) {
+                            swal("Error", "El nombre del archivo no debe contener tildes ni caracteres especiales.", "error");
+                            inputFile.value = '';
+                            return;
+                         }
+
+                         if (file.size > 4 * 1024 * 1024) {
+                              swal("Error", "La imagen no debe superar los 2MB.", "error");
+                              inputFile.value = '';
+                              return;
+                         }
+
+                        if (file && file.type.startsWith('image/')) {
+                          const reader = new FileReader();
+                          reader.onload = function (e) {
+                            previewImg.src = e.target.result;
+                            // Oculta los temas
+                            document.querySelectorAll('.profile-img-edit img:not(#preview)').forEach(img => img.style.display = 'none');
+                            // Mostrar el botón para quitar imagen
+                            btnQuitar.style.display = 'inline-block';
+                          };
+                          reader.readAsDataURL(file);
+                        } else {
+                          swal("Error", "Solo se permiten imágenes en formato .jpg, .jpeg o .png", "error");
+                          inputFile.value = '';
+                          return;
+                        }
+
+                  });
+                  // Acción al quitar imagen
+                  btnQuitar.addEventListener('click', function () {
+                    inputFile.value = ''; // Borrar archivo seleccionado manualmente
+
+                    // Oculta el botón de quitar
+                    btnQuitar.style.display = 'none';
+
+                    if (idpersona > 0) {
+                        // Llamar al backend para eliminar el logo en el servidor
+                        $.post("/persona", {
+                            action: "eliminarlogo",
+                            id: idpersona
+                        }, function (data) {
+                            if (data.result === 'ok') {
+                                previewImg.src = imagenPorDefecto;
+                            } else {
+                                swal("Error", "No se pudo eliminar el logo del servidor.", "error");
+                            }
+                        }, 'json').always(function () {
+                            // Restaurar otras imágenes (temas) si aplica
+                            document.querySelectorAll('.profile-img-edit img:not(#preview)').forEach(img => {
+                                img.style.display = 'inline-block';
+                            });
+                        });
+
+                    } else {
+                        // Para nuevo registro, solo restaurar imagen por defecto
+                        previewImg.src = imagenPorDefecto;
+
+                        document.querySelectorAll('.profile-img-edit img:not(#preview)').forEach(img => {
+                            img.style.display = 'inline-block';
+                        });
+                    }
+                  });
+
+
               });
           });
     </script>
@@ -785,6 +845,56 @@
                     <div class="tab-content">
                       <div class="tab-pane active" id="datospersonal" role="tabpanel" aria-labelledby="datospersonal-tab">
                           <div class="row">
+                                <div class="col-sm-9 col-md-9 col-lg-9">
+                                    <div class="form-group">
+                                        <label class="form-label">Empresa</label>
+                                        <select id="cmbempresapertenece" name="cmbempresapertenece"  {% if not request.user.is_superuser %} required {% endif %} class="form-select mb-3 shadow-none">
+                                             <option value="0">SELECCIONAR EMPRESA</option>
+                                             {% for xlistadoempresa in listadoempresa %}
+                                                       <option value='{{ xlistadoempresa.id }}'>{{ xlistadoempresa.nombre }}</option>
+                                             {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-md-3 col-lg-3">
+                                    <div class="form-group">
+                                       <div class="profile-img-edit position-relative">
+                                          <img id="preview" src="../../sireca/static/assets/images/avatars/01.png" alt="profile-pic" class="theme-color-default-img profile-pic rounded avatar-100">
+                                          <img id="preview" src="../../sireca/static/assets/images/avatars/01.png" alt="profile-pic" class="theme-color-purple-img profile-pic rounded avatar-100">
+                                          <img id="preview" src="../../sireca/static/assets/images/avatars/01.png" alt="profile-pic" class="theme-color-blue-img profile-pic rounded avatar-100">
+                                          <img id="preview" src="../../sireca/static/assets/images/avatars/01.png" alt="profile-pic" class="theme-color-green-img profile-pic rounded avatar-100">
+                                          <img id="preview" src="../../sireca/static/assets/images/avatars/01.png" alt="profile-pic" class="theme-color-yellow-img profile-pic rounded avatar-100">
+                                          <img id="preview" src="../../sireca/static/assets/images/avatars/01.png" alt="profile-pic" class="theme-color-pink-img profile-pic rounded avatar-100">
+                                          <label for="imglogo" class="upload-icone bg-primary" style="cursor:pointer">
+                                             <svg class="upload-button icon-14" width="14"  viewBox="0 0 24 24">
+                                                <path fill="#ffffff" d="M14.06,9L15,9.94L5.92,19H5V18.08L14.06,9M17.66,3C17.41,3 17.15,3.1 16.96,3.29L15.13,5.12L18.88,8.87L20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18.17,3.09 17.92,3 17.66,3M14.06,6.19L3,17.25V21H6.75L17.81,9.94L14.06,6.19Z" />
+                                             </svg>
+                                              <svg class="upload-button icon-14" width="14" viewBox="0 0 24 24">
+                                                    <path fill="#ffffff" d="M19,13H5V11H19V13Z" /> <!-- ícono de "menos" / quitar -->
+                                              </svg>
+                                             <input class="file-upload" type="file" id="imglogo" name="imglogo" accept=".jpg,.jpeg,.png"  >
+                                          </label>
+                                          <button type="button" id="btn-quitar-img"
+                                              class="upload-icone bg-danger position-absolute top-0 end-0 rounded-circle"
+                                              style="display: none; border: none; z-index: 2; transform: scale(0.8);">
+                                              <svg class="upload-button icon-14" width="14" viewBox="0 0 24 24">
+                                                <path fill="#ffffff" d="M19,13H5V11H19V13Z" />
+                                              </svg>
+                                          </button>
+
+                                       </div>
+                                       <div class="img-extension mt-3">
+                                          <div class="d-inline-block align-items-center">
+                                             <span>Solo</span>
+                                             <a href="#">.jpg</a>
+                                             <a href="#">.png</a>
+                                             <a href="#">.jpeg</a>
+                                          </div>
+                                       </div>
+                                    </div>
+                                </div>
+                          </div>
+                          <div class="row">
                             <div class="col-sm-6 col-md-6 col-lg-6">
                                 <div class="form-group">
                                     <label class="form-label">Tipo Identificación</label>
@@ -851,34 +961,45 @@
 
                           </div>
                           <div class="row">
-                               <div class="col-sm-5 col-md-5 col-lg-5">
+                               <div class="col-sm-6 col-md-6 col-lg-6">
                                    <div class="form-group">
-                                        <label class="form-label">Tipo de Sangre :</label>
-                                        <select id="cmbtiposangre" name="cmbtiposangre" class="form-select form-select mb-3 shadow-none">
-                                            <option value="0">Seleccionar el Tipo Sangre</option>
-                                             {% for xlistariposangre in listariposangre %}
-                                                   <option value='{{ xlistariposangre.id }}'>{{ xlistariposangre.sangre }}</option>
+                                        <label class="form-label">Estado Civil :</label>
+                                        <select id="cmbtipoestadocivil" name="cmbtipoestadocivil" class="form-select form-select mb-3 shadow-none">
+                                            <option value="0">Seleccionar el Estado Civil</option>
+                                             {% for xlistaestadocivil in listaestadocivil %}
+                                                   <option value='{{ xlistaestadocivil.id }}'>{{ xlistaestadocivil.nombre }}</option>
                                              {% endfor %}
                                         </select>
                                     </div>
-
                                </div>
-                               <div class="col-sm-7 col-md-7 col-lg-7">
+
+                               <div class="col-sm-6 col-md-6 col-lg-6">
                                    <div class="form-group">
-                                        <label class="form-label">Perfil :</label>
-                                        <select id="cmbperfil" name="cmbperfil" class="form-select mb-3 shadow-none" multiple style="width: 100%">
+                                        <label class="form-label">Nivel Académico :</label>
+                                        <select id="cmbnivelacademico" name="cmbnivelacademico" class="form-select form-select mb-3 shadow-none">
+                                            <option value="0">Seleccionar el Nivel Académico</option>
+                                             {% for xlistanivelacademico in listanivelacademico %}
+                                                   <option value='{{ xlistanivelacademico.id }}'>{{ xlistanivelacademico.nombre }}</option>
+                                             {% endfor %}
+                                        </select>
+                                    </div>
+                               </div>
+
+                          </div>
+
+                          <div class="row">
+                              <div class="col-sm-12 col-md-12 col-lg-12">
+                                   <div class="form-group">
+                                        <label class="form-label">Perfil <a style="color: #d92550">(*)</a> :</label>
+                                        <select id="cmbperfil" name="cmbperfil" class="form-select mb-3 shadow-none" multiple required style="width: 100%">
                                             <option value="0">Seleccionar el Perfil</option>
                                              {% for xlistaperfil in listaperfil %}
                                                    <option value='{{ xlistaperfil.id }}'>{{ xlistaperfil.nombre }}</option>
                                              {% endfor %}
                                         </select>
                                     </div>
-
-                               </div> 
+                              </div>
                           </div>
-
-
-
                       </div>
                       <div class="tab-pane" id="datosnacimiento" role="tabpanel" aria-labelledby="datosnacimiento-tab">
                            <div class="row">
@@ -969,13 +1090,8 @@
                                </div>
                           </div>
                           <div class="row">
-                              <div class="col-sm-4 col-md-4 col-lg-4">
-                                    <div class="form-group">
-                                        <label class="form-label">Número Domicilio  :</label>
-                                        <input type="number" class="form-control" id="txtnumdomicilio" name="txtnumdomicilio" placeholder="# Domicilio" value="0" min="0">
-                                    </div>
-                              </div>
-                              <div class="col-sm-8 col-md-8 col-lg-8">
+
+                              <div class="col-sm-12 col-md-12 col-lg-12">
                                     <div class="form-group">
                                         <label class="form-label">Calle Secundaria :</label>
                                         <input type="text" class="form-control" id="txtcallesecundaria" name="txtcallesecundaria" placeholder="Calle secundaria">
@@ -984,10 +1100,23 @@
 
                           </div>
                           <div class="row">
-                              <div class="col-sm-12 col-md-12 col-lg-12">
+
+                              <div class="col-sm-4 col-md-4 col-lg-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Número Domicilio  :</label>
+                                        <input type="number" class="form-control" id="txtnumdomicilio" name="txtnumdomicilio" placeholder="# Domicilio" value="0" min="0">
+                                    </div>
+                              </div>
+
+                              <div class="col-sm-8 col-md-8 col-lg-8">
                                     <div class="form-group">
                                         <label class="form-label">Sector :</label>
-                                        <input type="text" class="form-control" id="textsector" name="textsector" placeholder="Sector">
+                                        <select id="cmbsectorrsidencia" name="cmbsectorrsidencia" class="form-select mb-3 shadow-none" required>
+                                            <option value="0">Seleccionar la Sector</option>
+                                             {% for xlistasectorresidencia in listasectorresidencia %}
+                                                   <option value='{{ xlistasectorresidencia.id }}'>{{ xlistasectorresidencia.nombre }}</option>
+                                             {% endfor %}
+                                        </select>
                                     </div>
                               </div>
                           </div>
